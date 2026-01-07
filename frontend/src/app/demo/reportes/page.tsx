@@ -1,22 +1,13 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useMemo } from 'react';
 import Link from 'next/link';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
 
-// Demo data for reports
-const demoTicketStats = {
-  total: 156,
-  abiertos: 42,
-  enProceso: 35,
-  enEspera: 18,
-  resueltos: 48,
-  cerrados: 13,
-};
-
-const demoTicketsByCategory = [
+// Demo data for reports - all categories
+const allDemoTicketsByCategory = [
   { categoria: 'Sistema de Ventas', total: 45, porcentaje: 28.8 },
   { categoria: 'Portal Web', total: 32, porcentaje: 20.5 },
   { categoria: 'Aplicacion Movil', total: 28, porcentaje: 17.9 },
@@ -25,32 +16,107 @@ const demoTicketsByCategory = [
   { categoria: 'Otros', total: 12, porcentaje: 7.7 },
 ];
 
-const demoTicketsByPriority = [
+const allDemoTicketsByPriority = [
   { prioridad: 'Alta', total: 38, porcentaje: 24.4 },
   { prioridad: 'Media', total: 78, porcentaje: 50.0 },
   { prioridad: 'Baja', total: 40, porcentaje: 25.6 },
 ];
 
-const demoEmployeePerformance = [
-  { nombre: 'Maria Garcia', ticketsResueltos: 45, tiempoPromedio: '4.2 horas', satisfaccion: '95%' },
-  { nombre: 'Carlos Rodriguez', ticketsResueltos: 38, tiempoPromedio: '5.1 horas', satisfaccion: '92%' },
-  { nombre: 'Ana Martinez', ticketsResueltos: 32, tiempoPromedio: '3.8 horas', satisfaccion: '98%' },
-  { nombre: 'Luis Fernandez', ticketsResueltos: 28, tiempoPromedio: '6.2 horas', satisfaccion: '88%' },
-  { nombre: 'Sofia Torres', ticketsResueltos: 25, tiempoPromedio: '4.5 horas', satisfaccion: '91%' },
+const allDemoEmployeePerformance = [
+  { nombre: 'Maria Garcia', ticketsResueltos: 45, tiempoPromedio: '4.2 horas', satisfaccion: '95%', categoria: 'Sistema de Ventas' },
+  { nombre: 'Carlos Rodriguez', ticketsResueltos: 38, tiempoPromedio: '5.1 horas', satisfaccion: '92%', categoria: 'Portal Web' },
+  { nombre: 'Ana Martinez', ticketsResueltos: 32, tiempoPromedio: '3.8 horas', satisfaccion: '98%', categoria: 'Aplicacion Movil' },
+  { nombre: 'Luis Fernandez', ticketsResueltos: 28, tiempoPromedio: '6.2 horas', satisfaccion: '88%', categoria: 'Sistema de Inventario' },
+  { nombre: 'Sofia Torres', ticketsResueltos: 25, tiempoPromedio: '4.5 horas', satisfaccion: '91%', categoria: 'Facturacion' },
 ];
 
-const demoSLACompliance = {
+const allDemoSLACompliance = {
   cumplido: 142,
   incumplido: 14,
   porcentajeCumplimiento: 91.0,
 };
+
+// Category options for filter
+const categorias = ['Sistema de Ventas', 'Portal Web', 'Aplicacion Movil', 'Sistema de Inventario', 'Facturacion', 'Otros'];
 
 export default function DemoReportesPage() {
   const [exporting, setExporting] = useState(false);
   const [exportingExcel, setExportingExcel] = useState(false);
   const [exportSuccess, setExportSuccess] = useState(false);
   const [exportSuccessExcel, setExportSuccessExcel] = useState(false);
+  const [filtroCategoria, setFiltroCategoria] = useState('');
   const reportRef = useRef<HTMLDivElement>(null);
+
+  // Filtered data based on category selection
+  const filteredData = useMemo(() => {
+    if (!filtroCategoria) {
+      // No filter - return all data
+      return {
+        ticketsByCategory: allDemoTicketsByCategory,
+        ticketsByPriority: allDemoTicketsByPriority,
+        employeePerformance: allDemoEmployeePerformance.map(({ categoria, ...rest }) => rest),
+        ticketStats: {
+          total: 156,
+          abiertos: 42,
+          enProceso: 35,
+          enEspera: 18,
+          resueltos: 48,
+          cerrados: 13,
+        },
+        slaCompliance: allDemoSLACompliance,
+      };
+    }
+
+    // Filter by category
+    const filteredCategories = allDemoTicketsByCategory.filter(c => c.categoria === filtroCategoria);
+    const filteredEmployees = allDemoEmployeePerformance
+      .filter(e => e.categoria === filtroCategoria)
+      .map(({ categoria, ...rest }) => rest);
+
+    // Calculate filtered totals
+    const filteredTotal = filteredCategories.reduce((sum, c) => sum + c.total, 0);
+
+    // Recalculate percentages for filtered priority data
+    const priorityRatio = filteredTotal / 156; // Ratio based on total
+    const filteredPriority = allDemoTicketsByPriority.map(p => ({
+      prioridad: p.prioridad,
+      total: Math.round(p.total * priorityRatio),
+      porcentaje: p.porcentaje,
+    }));
+
+    // Recalculate stats for filtered data
+    const statsRatio = filteredTotal / 156;
+    const filteredStats = {
+      total: filteredTotal,
+      abiertos: Math.round(42 * statsRatio),
+      enProceso: Math.round(35 * statsRatio),
+      enEspera: Math.round(18 * statsRatio),
+      resueltos: Math.round(48 * statsRatio),
+      cerrados: Math.round(13 * statsRatio),
+    };
+
+    // Recalculate SLA for filtered data
+    const filteredSLA = {
+      cumplido: Math.round(142 * statsRatio),
+      incumplido: Math.round(14 * statsRatio),
+      porcentajeCumplimiento: allDemoSLACompliance.porcentajeCumplimiento,
+    };
+
+    return {
+      ticketsByCategory: filteredCategories,
+      ticketsByPriority: filteredPriority,
+      employeePerformance: filteredEmployees,
+      ticketStats: filteredStats,
+      slaCompliance: filteredSLA,
+    };
+  }, [filtroCategoria]);
+
+  // Shorthand access to filtered data
+  const demoTicketStats = filteredData.ticketStats;
+  const demoTicketsByCategory = filteredData.ticketsByCategory;
+  const demoTicketsByPriority = filteredData.ticketsByPriority;
+  const demoEmployeePerformance = filteredData.employeePerformance;
+  const demoSLACompliance = filteredData.slaCompliance;
 
   const formatDate = () => {
     return new Intl.DateTimeFormat('es-ES', {
@@ -73,18 +139,23 @@ export default function DemoReportesPage() {
       doc.setTextColor(37, 99, 235); // Primary blue
       doc.text('MDAyuda - Reporte de Estadisticas', pageWidth / 2, 20, { align: 'center' });
 
-      // Date
+      // Date and filter info
       doc.setFontSize(10);
       doc.setTextColor(100, 100, 100);
       doc.text(`Generado: ${formatDate()}`, pageWidth / 2, 28, { align: 'center' });
+      if (filtroCategoria) {
+        doc.setTextColor(37, 99, 235);
+        doc.text(`Filtro aplicado: ${filtroCategoria}`, pageWidth / 2, 34, { align: 'center' });
+      }
 
       // Section 1: General Statistics
+      const startY = filtroCategoria ? 45 : 40;
       doc.setFontSize(14);
       doc.setTextColor(0, 0, 0);
-      doc.text('1. Resumen General de Tickets', 14, 40);
+      doc.text('1. Resumen General de Tickets', 14, startY);
 
       autoTable(doc, {
-        startY: 45,
+        startY: startY + 5,
         head: [['Estado', 'Cantidad']],
         body: [
           ['Total de Tickets', demoTicketStats.total.toString()],
@@ -197,9 +268,11 @@ export default function DemoReportesPage() {
       const wb = XLSX.utils.book_new();
 
       // Sheet 1: Resumen General
+      const filterInfo = filtroCategoria ? [`Filtro aplicado: ${filtroCategoria}`] : [];
       const resumenData = [
         ['MDAyuda - Reporte de Estadisticas'],
         [`Generado: ${formatDate()}`],
+        ...filterInfo.map(f => [f]),
         [],
         ['Resumen General de Tickets'],
         ['Estado', 'Cantidad'],
@@ -285,10 +358,27 @@ export default function DemoReportesPage() {
               Demo - Reportes y Estadisticas
             </h1>
             <p className="text-gray-600 dark:text-gray-400">
-              Esta pagina demuestra la funcionalidad de exportacion a PDF
+              Esta pagina demuestra la funcionalidad de exportacion con filtros
             </p>
           </div>
-          <div className="flex gap-3">
+          <div className="flex flex-wrap gap-3 items-center">
+            {/* Category Filter */}
+            <div className="flex items-center gap-2">
+              <label htmlFor="filtroCategoria" className="text-sm text-gray-600 dark:text-gray-400">
+                Filtrar por:
+              </label>
+              <select
+                id="filtroCategoria"
+                value={filtroCategoria}
+                onChange={(e) => setFiltroCategoria(e.target.value)}
+                className="px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+              >
+                <option value="">Todas las categorias</option>
+                {categorias.map((cat) => (
+                  <option key={cat} value={cat}>{cat}</option>
+                ))}
+              </select>
+            </div>
             <button
               onClick={exportToPDF}
               disabled={exporting}
@@ -517,19 +607,41 @@ export default function DemoReportesPage() {
           </div>
         </div>
 
+        {/* Active filter indicator */}
+        {filtroCategoria && (
+          <div className="bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <svg className="h-5 w-5 text-yellow-600 dark:text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+              </svg>
+              <span className="text-yellow-700 dark:text-yellow-300">
+                Filtro activo: <strong>{filtroCategoria}</strong> - Los datos y exportaciones solo muestran esta categoria
+              </span>
+            </div>
+            <button
+              onClick={() => setFiltroCategoria('')}
+              className="text-yellow-600 hover:text-yellow-800 dark:text-yellow-400 dark:hover:text-yellow-200"
+            >
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        )}
+
         {/* Feature info */}
         <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
           <h4 className="font-medium text-blue-800 dark:text-blue-200 mb-2">
-            Informacion de Demo - Features #148 y #149
+            Informacion de Demo - Features #148, #149 y #150
           </h4>
           <p className="text-blue-700 dark:text-blue-300 text-sm">
-            Esta pagina demuestra la funcionalidad de <strong>exportacion a PDF y Excel</strong>.
+            Esta pagina demuestra la funcionalidad de <strong>exportacion a PDF, Excel con filtros</strong>.
           </p>
           <ul className="list-disc list-inside text-sm text-blue-700 dark:text-blue-300 mt-2 space-y-1">
             <li>Haz clic en &quot;Exportar a PDF&quot; para descargar el reporte en formato PDF</li>
             <li>Haz clic en &quot;Exportar a Excel&quot; para descargar el reporte en formato Excel</li>
-            <li>Ambos archivos incluyen todas las estadisticas mostradas en pantalla</li>
-            <li>Los archivos se descargan automaticamente a tu carpeta de descargas</li>
+            <li>Usa el filtro de categoria para ver solo datos de una categoria especifica</li>
+            <li><strong>Las exportaciones respetan el filtro activo</strong> - solo se exportan los datos filtrados</li>
             <li>El Excel contiene multiples hojas con cada seccion del reporte</li>
           </ul>
         </div>
