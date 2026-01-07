@@ -27,6 +27,15 @@ const demoTickets: Ticket[] = [
     cliente: 'Juan Perez',
   },
   {
+    id: 6,
+    titulo: 'Este es un titulo extremadamente largo que deberia truncarse o ajustarse correctamente sin causar desbordamiento horizontal en la tabla de tickets cuando se muestra en cualquier tamaño de pantalla incluyendo dispositivos moviles y tablets',
+    estado: 'Abierto',
+    prioridad: 'Media',
+    categoria: 'Sistema de Pruebas de Texto Largo',
+    fechaCreacion: '2026-01-06',
+    cliente: 'Usuario Con Nombre Muy Largo Para Probar Truncamiento',
+  },
+  {
     id: 2,
     titulo: 'Actualizacion de datos de inventario lenta',
     estado: 'EnProceso',
@@ -184,7 +193,7 @@ export default function DemoTicketsPage() {
         </div>
 
         {/* Tickets table */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
             <thead className="bg-gray-50 dark:bg-gray-700">
               <tr>
@@ -214,10 +223,11 @@ export default function DemoTicketsPage() {
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
                     #{ticket.id}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                  <td className="px-6 py-4 text-sm text-gray-900 dark:text-white max-w-xs">
                     <Link
                       href={`/demo/tickets/${ticket.id}`}
-                      className="text-primary-600 dark:text-primary-400 hover:underline"
+                      className="text-primary-600 dark:text-primary-400 hover:underline block truncate"
+                      title={ticket.titulo}
                     >
                       {ticket.titulo}
                     </Link>
@@ -228,11 +238,15 @@ export default function DemoTicketsPage() {
                   <td className="px-6 py-4 whitespace-nowrap">
                     <PriorityBadge prioridad={ticket.prioridad} />
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                    {ticket.categoria}
+                  <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400 max-w-[150px]">
+                    <span className="block truncate" title={ticket.categoria}>
+                      {ticket.categoria}
+                    </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                    {ticket.cliente}
+                  <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400 max-w-[150px]">
+                    <span className="block truncate" title={ticket.cliente}>
+                      {ticket.cliente}
+                    </span>
                   </td>
                 </tr>
               ))}
