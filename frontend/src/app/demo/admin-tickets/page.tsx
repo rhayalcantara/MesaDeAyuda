@@ -107,6 +107,7 @@ export default function DemoAdminTicketsPage() {
   const [filtroEstado, setFiltroEstado] = useState(searchParams.get('estado') || '');
   const [filtroPrioridad, setFiltroPrioridad] = useState(searchParams.get('prioridad') || '');
   const [busqueda, setBusqueda] = useState(searchParams.get('busqueda') || '');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>(searchParams.get('orden') as 'asc' | 'desc' || 'desc');
   const [currentPage, setCurrentPage] = useState(1);
 
   // Update URL when filters change (to preserve state on back navigation)
@@ -115,13 +116,14 @@ export default function DemoAdminTicketsPage() {
     if (filtroEstado) params.set('estado', filtroEstado);
     if (filtroPrioridad) params.set('prioridad', filtroPrioridad);
     if (busqueda) params.set('busqueda', busqueda);
+    if (sortOrder) params.set('orden', sortOrder);
 
     const queryString = params.toString();
     const newUrl = queryString ? `?${queryString}` : '/demo/admin-tickets';
 
     // Use replaceState to update URL without adding to history
     window.history.replaceState(null, '', newUrl);
-  }, [filtroEstado, filtroPrioridad, busqueda]);
+  }, [filtroEstado, filtroPrioridad, busqueda, sortOrder]);
 
   // Filter tickets
   const filteredTickets = demoTickets.filter(ticket => {
@@ -129,6 +131,13 @@ export default function DemoAdminTicketsPage() {
     if (filtroPrioridad && ticket.prioridad !== filtroPrioridad) return false;
     if (busqueda && !ticket.titulo.toLowerCase().includes(busqueda.toLowerCase())) return false;
     return true;
+  });
+
+  // Sort tickets by date
+  const sortedTickets = [...filteredTickets].sort((a, b) => {
+    const dateA = new Date(a.fechaCreacion).getTime();
+    const dateB = new Date(b.fechaCreacion).getTime();
+    return sortOrder === 'asc' ? dateA - dateB : dateB - dateA;
   });
 
   const getEstadoBadgeClass = (estado: string) => {
@@ -186,7 +195,7 @@ export default function DemoAdminTicketsPage() {
 
         {/* Filters */}
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Buscar
@@ -231,6 +240,19 @@ export default function DemoAdminTicketsPage() {
                 <option value="Baja">Baja</option>
               </select>
             </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Ordenar por Fecha
+              </label>
+              <select
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                value={sortOrder}
+                onChange={(e) => setSortOrder(e.target.value as 'asc' | 'desc')}
+              >
+                <option value="desc">Mas recientes primero</option>
+                <option value="asc">Mas antiguos primero</option>
+              </select>
+            </div>
             <div className="flex items-end">
               <button
                 className="w-full px-4 py-2 bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-md hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors"
@@ -238,6 +260,7 @@ export default function DemoAdminTicketsPage() {
                   setFiltroEstado('');
                   setFiltroPrioridad('');
                   setBusqueda('');
+                  setSortOrder('desc');
                 }}
               >
                 Limpiar Filtros
@@ -265,19 +288,28 @@ export default function DemoAdminTicketsPage() {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Titulo</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Estado</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Prioridad</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    <button
+                      onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+                      className="flex items-center gap-1 hover:text-gray-700 dark:hover:text-white"
+                    >
+                      Fecha
+                      <span className="text-blue-500">{sortOrder === 'asc' ? '↑' : '↓'}</span>
+                    </button>
+                  </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Cliente</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Acciones</th>
                 </tr>
               </thead>
               <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                {filteredTickets.length === 0 ? (
+                {sortedTickets.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="px-6 py-4 text-center text-gray-500 dark:text-gray-400">
+                    <td colSpan={7} className="px-6 py-4 text-center text-gray-500 dark:text-gray-400">
                       No hay tickets que coincidan con los filtros
                     </td>
                   </tr>
                 ) : (
-                  filteredTickets.map((ticket) => (
+                  sortedTickets.map((ticket) => (
                     <tr key={ticket.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                         #{ticket.id}
@@ -296,11 +328,18 @@ export default function DemoAdminTicketsPage() {
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                        {new Date(ticket.fechaCreacion).toLocaleDateString('es-ES', {
+                          day: '2-digit',
+                          month: 'short',
+                          year: 'numeric'
+                        })}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                         {ticket.clienteNombre}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm">
                         <Link
-                          href={`/demo/admin-tickets/${ticket.id}?returnUrl=${encodeURIComponent(`/demo/admin-tickets?estado=${filtroEstado}&prioridad=${filtroPrioridad}&busqueda=${busqueda}`)}`}
+                          href={`/demo/admin-tickets/${ticket.id}?returnUrl=${encodeURIComponent(`/demo/admin-tickets?estado=${filtroEstado}&prioridad=${filtroPrioridad}&busqueda=${busqueda}&orden=${sortOrder}`)}`}
                           className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300"
                         >
                           Ver detalle
