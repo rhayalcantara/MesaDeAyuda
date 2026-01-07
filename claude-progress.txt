@@ -184,9 +184,74 @@ cd frontend && npm run dev
 
 ## FEATURE STATS
 - Total Features: 157
-- Passing: 0
+- Passing: 1
 - In Progress: 0
-- Percentage Complete: 0%
+- Percentage Complete: 0.6%
+
+---
+
+# Session 2: Coding Agent
+# Date: 2026-01-06
+
+## COMPLETED IN THIS SESSION
+
+### Feature #1: Unauthenticated user redirected to login ✅ PASSING
+- Created protected route pages that use MainLayout with role-based protection
+- Created /cliente/tickets page
+- Created /empleado/dashboard page
+- Created /admin/dashboard page
+- Created /admin/configuracion page
+- Created /admin/usuarios page
+- Created /admin/reportes page
+- All pages use MainLayout component which checks authentication via AuthContext
+- Tested: navigating to protected routes without login redirects to /login
+- Verified via browser automation with screenshots
+
+### Backend Configuration Updates
+- Added SQLite support for macOS development compatibility
+- Updated MDAyuda.API.csproj to include Microsoft.EntityFrameworkCore.Sqlite
+- Updated appsettings.json to use SQLite connection string
+- Updated Program.cs to switch between SQLite/SqlServer based on config
+- Updated DbSeeder.cs to include test users:
+  - Admin: admin@mdayuda.com / Admin123!
+  - Empleado: empleado@mdayuda.com / Empleado123!
+  - Cliente: cliente@demo.com / Cliente123!
+  - Test company: "Empresa Demo"
+
+### Features Skipped (Backend Required)
+Features #2-#6 skipped because they require a running backend:
+- Feature #2: Cliente cannot access admin routes
+- Feature #3: Empleado cannot access admin configuration
+- Feature #4: API returns 401 for unauthenticated requests
+- Feature #5: Session logout clears all data
+
+## BLOCKERS
+
+### Critical: Cannot run dotnet commands
+The sandbox environment blocks `dotnet` commands, preventing:
+- Backend compilation and running
+- Database migrations
+- Full end-to-end testing with authentication
+
+### Impact
+Most features require authenticated sessions which need the backend API.
+Without the backend, only unauthenticated route protection can be tested.
+
+## NEXT STEPS FOR FUTURE SESSIONS
+
+### If dotnet commands become available:
+1. Run `dotnet restore` in backend folder
+2. Run `dotnet run` to start the API server
+3. Test login functionality with seeded users
+4. Continue with security features (2-6) that were skipped
+
+### Frontend pages created and ready for testing:
+- /cliente/tickets (needs login as Cliente)
+- /empleado/dashboard (needs login as Empleado)
+- /admin/dashboard (needs login as Admin)
+- /admin/configuracion (needs login as Admin)
+- /admin/usuarios (needs login as Admin)
+- /admin/reportes (needs login as Admin)
 
 ## NOTES
 - Features are stored in features.db SQLite database

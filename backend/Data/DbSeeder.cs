@@ -93,6 +93,62 @@ public static class DbSeeder
             context.ConfiguracionesSistema.AddRange(systemConfigs);
         }
 
+        // Seed default company for testing
+        Empresa? testEmpresa = null;
+        if (!context.Empresas.Any())
+        {
+            testEmpresa = new Empresa
+            {
+                Nombre = "Empresa Demo",
+                ConfigVisibilidadTickets = "empresa",
+                ColorPrimario = "#2563eb",
+                Activa = true,
+                FechaCreacion = DateTime.UtcNow,
+                FechaActualizacion = DateTime.UtcNow
+            };
+            context.Empresas.Add(testEmpresa);
+            await context.SaveChangesAsync();
+        }
+        else
+        {
+            testEmpresa = context.Empresas.FirstOrDefault();
+        }
+
+        // Seed test Empleado user
+        if (!context.Usuarios.Any(u => u.Rol == "Empleado"))
+        {
+            var empleado = new Usuario
+            {
+                Email = "empleado@mdayuda.com",
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword("Empleado123!"),
+                Nombre = "Empleado Demo",
+                Rol = "Empleado",
+                Activo = true,
+                RequiereCambioPassword = false,
+                FechaCreacion = DateTime.UtcNow,
+                FechaActualizacion = DateTime.UtcNow
+            };
+            context.Usuarios.Add(empleado);
+        }
+
+        // Seed test Cliente user
+        if (!context.Usuarios.Any(u => u.Rol == "Cliente") && testEmpresa != null)
+        {
+            var cliente = new Usuario
+            {
+                Email = "cliente@demo.com",
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword("Cliente123!"),
+                Nombre = "Cliente Demo",
+                Rol = "Cliente",
+                EmpresaId = testEmpresa.Id,
+                Activo = true,
+                RequiereCambioPassword = false,
+                FechaCreacion = DateTime.UtcNow,
+                FechaActualizacion = DateTime.UtcNow
+            };
+            context.Usuarios.Add(cliente);
+        }
+
         // Seed default categories
         if (!context.Categorias.Any())
         {

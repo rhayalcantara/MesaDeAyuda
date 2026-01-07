@@ -49,8 +49,18 @@ builder.Services.AddSwaggerGen(c =>
 });
 
 // Configure Entity Framework
+var dbProvider = builder.Configuration.GetValue<string>("DatabaseProvider") ?? "SqlServer";
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+{
+    if (dbProvider == "Sqlite")
+    {
+        options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection"));
+    }
+    else
+    {
+        options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"));
+    }
+});
 
 // Configure JWT Authentication
 var jwtSettings = builder.Configuration.GetSection("Jwt");
@@ -125,19 +135,32 @@ app.UseMiddleware<ErrorHandlingMiddleware>();
 
 app.MapControllers();
 
-// Ensure database is created and apply migrations
+// Ensure database is created and seed data
 using (var scope = app.Services.CreateScope())
 {
     var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    var configuration = scope.ServiceProvider.GetRequiredService<IConfiguration>();
+    var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+
     try
     {
-        context.Database.Migrate();
+        var provider = configuration.GetValue<string>("DatabaseProvider") ?? "SqlServer";
+        if (provider == "Sqlite")
+        {
+            // For SQLite, use EnsureCreated (simpler for dev)
+            context.Database.EnsureCreated();
+        }
+        else
+        {
+            // For SQL Server, use migrations
+            context.Database.Migrate();
+        }
         await DbSeeder.SeedAsync(context);
+        logger.LogInformation("Database initialized successfully.");
     }
     catch (Exception ex)
     {
-        var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
-        logger.LogError(ex, "An error occurred while migrating or seeding the database.");
+        logger.LogError(ex, "An error occurred while initializing the database.");
     }
 }
 
