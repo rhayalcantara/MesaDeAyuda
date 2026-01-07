@@ -16,62 +16,41 @@ interface Ticket {
   cliente: string;
 }
 
-const demoTickets: Ticket[] = [
-  {
-    id: 1,
-    titulo: 'Error al generar reportes de ventas',
-    estado: 'Abierto',
-    prioridad: 'Alta',
-    categoria: 'Sistema de Ventas',
-    fechaCreacion: '2026-01-06',
-    cliente: 'Juan Perez',
-  },
-  {
-    id: 6,
-    titulo: 'Este es un titulo extremadamente largo que deberia truncarse o ajustarse correctamente sin causar desbordamiento horizontal en la tabla de tickets cuando se muestra en cualquier tamaño de pantalla incluyendo dispositivos moviles y tablets',
-    estado: 'Abierto',
-    prioridad: 'Media',
-    categoria: 'Sistema de Pruebas de Texto Largo',
-    fechaCreacion: '2026-01-06',
-    cliente: 'Usuario Con Nombre Muy Largo Para Probar Truncamiento',
-  },
-  {
-    id: 2,
-    titulo: 'Actualizacion de datos de inventario lenta',
-    estado: 'EnProceso',
-    prioridad: 'Media',
-    categoria: 'Sistema de Inventario',
-    fechaCreacion: '2026-01-05',
-    cliente: 'Maria Garcia',
-  },
-  {
-    id: 3,
-    titulo: 'Solicitud de nuevo modulo de facturacion',
-    estado: 'EnEspera',
-    prioridad: 'Baja',
-    categoria: 'Portal Web',
-    fechaCreacion: '2026-01-04',
-    cliente: 'Carlos Lopez',
-  },
-  {
-    id: 4,
-    titulo: 'Bug en la aplicacion movil al sincronizar',
-    estado: 'Resuelto',
-    prioridad: 'Alta',
-    categoria: 'Aplicacion Movil',
-    fechaCreacion: '2026-01-03',
-    cliente: 'Ana Martinez',
-  },
-  {
-    id: 5,
-    titulo: 'Consulta sobre configuracion del sistema',
-    estado: 'Cerrado',
-    prioridad: 'Baja',
-    categoria: 'Otro',
-    fechaCreacion: '2026-01-02',
-    cliente: 'Pedro Sanchez',
-  },
-];
+// Generate many demo tickets for pagination testing
+const generateDemoTickets = (): Ticket[] => {
+  const estados: Ticket['estado'][] = ['Abierto', 'EnProceso', 'EnEspera', 'Resuelto', 'Cerrado'];
+  const prioridades: Ticket['prioridad'][] = ['Alta', 'Media', 'Baja'];
+  const categorias = ['Sistema de Ventas', 'Portal Web', 'Aplicacion Movil', 'Sistema de Inventario', 'Facturacion', 'Soporte General'];
+  const clientes = ['Juan Perez', 'Maria Garcia', 'Carlos Lopez', 'Ana Martinez', 'Pedro Sanchez', 'Laura Rodriguez', 'Miguel Torres', 'Sofia Fernandez'];
+  const titulos = [
+    'Error al generar reportes',
+    'Problema de sincronizacion',
+    'Solicitud de nueva funcionalidad',
+    'Bug en la interfaz',
+    'Consulta sobre configuracion',
+    'Falla al exportar datos',
+    'Lentitud en el sistema',
+    'Error de autenticacion',
+    'Problema con notificaciones',
+    'Actualizacion requerida',
+  ];
+
+  const tickets: Ticket[] = [];
+  for (let i = 1; i <= 50; i++) {
+    tickets.push({
+      id: i,
+      titulo: `${titulos[i % titulos.length]} #${i}`,
+      estado: estados[i % estados.length],
+      prioridad: prioridades[i % prioridades.length],
+      categoria: categorias[i % categorias.length],
+      fechaCreacion: `2026-01-${String(Math.max(1, 15 - (i % 15))).padStart(2, '0')}`,
+      cliente: clientes[i % clientes.length],
+    });
+  }
+  return tickets;
+};
+
+const demoTickets: Ticket[] = generateDemoTickets();
 
 // Priority badge component - uses text AND color (accessible)
 function PriorityBadge({ prioridad }: { prioridad: Ticket['prioridad'] }) {
@@ -164,13 +143,23 @@ function StatusBadge({ estado }: { estado: Ticket['estado'] }) {
   );
 }
 
+const ITEMS_PER_PAGE = 10;
+
 export default function DemoTicketsPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filteredTickets, setFilteredTickets] = useState(demoTickets);
+  const [currentPage, setCurrentPage] = useState(1);
+
+  // Calculate pagination values
+  const totalPages = Math.ceil(filteredTickets.length / ITEMS_PER_PAGE);
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const endIndex = startIndex + ITEMS_PER_PAGE;
+  const paginatedTickets = filteredTickets.slice(startIndex, endIndex);
 
   // Handle search
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
+    setCurrentPage(1); // Reset to page 1 when searching
     if (searchTerm.trim() === '') {
       setFilteredTickets(demoTickets);
     } else {
@@ -188,6 +177,12 @@ export default function DemoTicketsPage() {
   const handleClearSearch = () => {
     setSearchTerm('');
     setFilteredTickets(demoTickets);
+    setCurrentPage(1);
+  };
+
+  // Handle page change
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
   };
 
   return (
@@ -313,7 +308,7 @@ export default function DemoTicketsPage() {
               </tr>
             </thead>
             <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-              {filteredTickets.map((ticket) => (
+              {paginatedTickets.map((ticket) => (
                 <tr key={ticket.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
                     #{ticket.id}
@@ -348,6 +343,48 @@ export default function DemoTicketsPage() {
             </tbody>
           </table>
         </div>
+        )}
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="mt-6 bg-white dark:bg-gray-800 rounded-lg shadow p-4">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="text-sm text-gray-600 dark:text-gray-400">
+                Mostrando {startIndex + 1} - {Math.min(endIndex, filteredTickets.length)} de {filteredTickets.length} tickets
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  className="px-3 py-2 text-sm font-medium rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  Anterior
+                </button>
+                {/* Page numbers */}
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                  <button
+                    key={page}
+                    onClick={() => handlePageChange(page)}
+                    className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
+                      currentPage === page
+                        ? 'bg-primary-600 text-white'
+                        : 'border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600'
+                    }`}
+                    aria-current={currentPage === page ? 'page' : undefined}
+                  >
+                    {page}
+                  </button>
+                ))}
+                <button
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                  className="px-3 py-2 text-sm font-medium rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  Siguiente
+                </button>
+              </div>
+            </div>
+          </div>
         )}
 
         {/* Legend */}
