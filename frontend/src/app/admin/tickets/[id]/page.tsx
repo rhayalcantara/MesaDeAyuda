@@ -114,40 +114,70 @@ export default function AdminTicketDetailPage() {
   const [activeTab, setActiveTab] = useState<'comentarios' | 'archivos'>('comentarios');
 
   useEffect(() => {
-    fetchTicket();
-  }, [ticketId]);
+    // AbortController to cancel pending requests when component unmounts
+    // or when ticketId changes (prevents state updates on unmounted component)
+    const abortController = new AbortController();
+    let isMounted = true;
 
-  const fetchTicket = async () => {
-    try {
-      // Fetch ticket first - this is required
-      const ticketRes = await api.get(`/tickets/${ticketId}`);
-      setTicket(ticketRes.data);
-
-      // Fetch comentarios - use demo if fails (endpoint may not exist yet)
+    const fetchTicket = async () => {
       try {
-        const comentariosRes = await api.get(`/tickets/${ticketId}/comentarios`);
-        setComentarios(comentariosRes.data);
-      } catch {
+        // Fetch ticket first - this is required
+        const ticketRes = await api.get(`/tickets/${ticketId}`, {
+          signal: abortController.signal
+        });
+
+        // Only update state if component is still mounted
+        if (!isMounted) return;
+        setTicket(ticketRes.data);
+
+        // Fetch comentarios - use demo if fails (endpoint may not exist yet)
+        try {
+          const comentariosRes = await api.get(`/tickets/${ticketId}/comentarios`, {
+            signal: abortController.signal
+          });
+          if (isMounted) setComentarios(comentariosRes.data);
+        } catch {
+          if (isMounted) setComentarios(demoComentarios);
+        }
+
+        // Fetch archivos - use demo if fails (endpoint may not exist yet)
+        try {
+          const archivosRes = await api.get(`/tickets/${ticketId}/archivos`, {
+            signal: abortController.signal
+          });
+          if (isMounted) setArchivos(archivosRes.data);
+        } catch {
+          if (isMounted) setArchivos(demoArchivos);
+        }
+      } catch (error: unknown) {
+        // Don't update state if request was aborted (user navigated away)
+        if (error instanceof Error && error.name === 'AbortError') {
+          console.log('Request aborted - user navigated away');
+          return;
+        }
+        // Only update state if still mounted
+        if (!isMounted) return;
+        // Fall back to demo data only if ticket fetch fails
+        console.log('Using demo data (API not available)');
+        setTicket({ ...demoTicket, id: parseInt(ticketId) });
         setComentarios(demoComentarios);
-      }
-
-      // Fetch archivos - use demo if fails (endpoint may not exist yet)
-      try {
-        const archivosRes = await api.get(`/tickets/${ticketId}/archivos`);
-        setArchivos(archivosRes.data);
-      } catch {
         setArchivos(demoArchivos);
+      } finally {
+        // Only update loading state if still mounted
+        if (isMounted) {
+          setLoading(false);
+        }
       }
-    } catch (error) {
-      // Fall back to demo data only if ticket fetch fails
-      console.log('Using demo data (API not available)');
-      setTicket({ ...demoTicket, id: parseInt(ticketId) });
-      setComentarios(demoComentarios);
-      setArchivos(demoArchivos);
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
+
+    fetchTicket();
+
+    // Cleanup function - runs when component unmounts or before next effect
+    return () => {
+      isMounted = false;
+      abortController.abort();
+    };
+  }, [ticketId]);
 
   const formatFileSize = (bytes: number) => {
     if (bytes < 1024) return bytes + ' B';

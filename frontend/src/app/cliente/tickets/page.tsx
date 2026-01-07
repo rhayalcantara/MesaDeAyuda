@@ -60,36 +60,63 @@ export default function ClienteTicketsPage() {
   const [busqueda, setBusqueda] = useState('');
 
   useEffect(() => {
+    // AbortController to cancel pending requests when component unmounts
+    // or when page/filters change (prevents state updates on unmounted component)
+    const abortController = new AbortController();
+    let isMounted = true;
+
+    const fetchTickets = async () => {
+      setLoading(true);
+      setError('');
+      try {
+        const params = new URLSearchParams();
+        params.append('page', page.toString());
+        params.append('pageSize', '10');
+        if (filtroEstado) params.append('estado', filtroEstado);
+        if (busqueda) params.append('busqueda', busqueda);
+
+        const response = await api.get<TicketListResponse>(`/tickets/mis-tickets?${params.toString()}`, {
+          signal: abortController.signal
+        });
+
+        // Only update state if component is still mounted
+        if (!isMounted) return;
+
+        setTickets(response.data.items);
+        setTotalItems(response.data.totalItems);
+        setTotalPages(response.data.totalPages);
+      } catch (err: unknown) {
+        // Don't update state if request was aborted (user navigated away)
+        if (err instanceof Error && err.name === 'AbortError') {
+          console.log('Request aborted - user navigated away');
+          return;
+        }
+        // Only update state if still mounted
+        if (!isMounted) return;
+        console.error('Error fetching tickets:', err);
+        setError('No se pudieron cargar los tickets. Intente nuevamente.');
+        setTickets([]);
+      } finally {
+        // Only update loading state if still mounted
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    };
+
     fetchTickets();
-  }, [page, filtroEstado]);
 
-  const fetchTickets = async () => {
-    setLoading(true);
-    setError('');
-    try {
-      const params = new URLSearchParams();
-      params.append('page', page.toString());
-      params.append('pageSize', '10');
-      if (filtroEstado) params.append('estado', filtroEstado);
-      if (busqueda) params.append('busqueda', busqueda);
-
-      const response = await api.get<TicketListResponse>(`/tickets/mis-tickets?${params.toString()}`);
-      setTickets(response.data.items);
-      setTotalItems(response.data.totalItems);
-      setTotalPages(response.data.totalPages);
-    } catch (err: any) {
-      console.error('Error fetching tickets:', err);
-      setError('No se pudieron cargar los tickets. Intente nuevamente.');
-      setTickets([]);
-    } finally {
-      setLoading(false);
-    }
-  };
+    // Cleanup function - runs when component unmounts or before next effect
+    return () => {
+      isMounted = false;
+      abortController.abort();
+    };
+  }, [page, filtroEstado, busqueda]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
+    // Setting page to 1 will trigger the useEffect to fetch tickets
     setPage(1);
-    fetchTickets();
   };
 
   const formatDate = (dateString: string) => {

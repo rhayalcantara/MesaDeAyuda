@@ -213,8 +213,62 @@ export default function AdminTicketsPage() {
   const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
+    // AbortController to cancel pending requests when component unmounts
+    // or when filters change (prevents state updates on unmounted component)
+    const abortController = new AbortController();
+    let isMounted = true;
+
+    const fetchTickets = async () => {
+      try {
+        const params = new URLSearchParams();
+        if (filtroEstado) params.append('estado', filtroEstado);
+        if (filtroPrioridad) params.append('prioridad', filtroPrioridad);
+        if (busqueda) params.append('busqueda', busqueda);
+
+        const response = await api.get(`/tickets?${params}`, {
+          signal: abortController.signal
+        });
+
+        // Only update state if component is still mounted
+        if (!isMounted) return;
+
+        // API returns { items: [], totalItems, page, pageSize, totalPages }
+        const data = response.data;
+        if (data.items) {
+          setTickets(data.items);
+        } else if (Array.isArray(data)) {
+          setTickets(data);
+        } else {
+          console.log('Using demo tickets (unexpected response format)');
+          setTickets(filterDemoTickets());
+        }
+      } catch (error: unknown) {
+        // Don't update state if request was aborted (user navigated away)
+        if (error instanceof Error && error.name === 'AbortError') {
+          console.log('Request aborted - user navigated away');
+          return;
+        }
+        // Only update state if still mounted
+        if (!isMounted) return;
+        // Fallback to demo data
+        console.log('Using demo tickets (API not available)');
+        setTickets(filterDemoTickets());
+      } finally {
+        // Only update loading state if still mounted
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    };
+
     fetchTickets();
     setCurrentPage(1); // Reset to page 1 when filters change
+
+    // Cleanup function - runs when component unmounts or before next effect
+    return () => {
+      isMounted = false;
+      abortController.abort();
+    };
   }, [filtroEstado, filtroPrioridad, busqueda]);
 
   // Pagination calculations
@@ -222,33 +276,6 @@ export default function AdminTicketsPage() {
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
   const endIndex = startIndex + ITEMS_PER_PAGE;
   const paginatedTickets = tickets.slice(startIndex, endIndex);
-
-  const fetchTickets = async () => {
-    try {
-      const params = new URLSearchParams();
-      if (filtroEstado) params.append('estado', filtroEstado);
-      if (filtroPrioridad) params.append('prioridad', filtroPrioridad);
-      if (busqueda) params.append('busqueda', busqueda);
-
-      const response = await api.get(`/tickets?${params}`);
-      // API returns { items: [], totalItems, page, pageSize, totalPages }
-      const data = response.data;
-      if (data.items) {
-        setTickets(data.items);
-      } else if (Array.isArray(data)) {
-        setTickets(data);
-      } else {
-        console.log('Using demo tickets (unexpected response format)');
-        setTickets(filterDemoTickets());
-      }
-    } catch (error) {
-      // Fallback to demo data
-      console.log('Using demo tickets (API not available)');
-      setTickets(filterDemoTickets());
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const filterDemoTickets = () => {
     let filtered = [...demoTickets];

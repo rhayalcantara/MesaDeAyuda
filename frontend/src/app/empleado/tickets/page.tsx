@@ -23,27 +23,54 @@ export default function EmpleadoTicketsPage() {
   const [busqueda, setBusqueda] = useState('');
 
   useEffect(() => {
-    fetchTickets();
-  }, [filtroEstado, filtroPrioridad, busqueda]);
+    // AbortController to cancel pending requests when component unmounts
+    // or when filters change (prevents state updates on unmounted component)
+    const abortController = new AbortController();
+    let isMounted = true;
 
-  const fetchTickets = async () => {
-    try {
-      const params = new URLSearchParams();
-      if (filtroEstado) params.append('estado', filtroEstado);
-      if (filtroPrioridad) params.append('prioridad', filtroPrioridad);
-      if (busqueda) params.append('busqueda', busqueda);
+    const fetchTickets = async () => {
+      try {
+        const params = new URLSearchParams();
+        if (filtroEstado) params.append('estado', filtroEstado);
+        if (filtroPrioridad) params.append('prioridad', filtroPrioridad);
+        if (busqueda) params.append('busqueda', busqueda);
 
-      const response = await fetch(`http://localhost:5000/api/tickets?${params}`);
-      if (response.ok) {
-        const data = await response.json();
-        setTickets(data);
+        const response = await fetch(`http://localhost:5000/api/tickets?${params}`, {
+          signal: abortController.signal
+        });
+
+        // Only update state if component is still mounted
+        if (!isMounted) return;
+
+        if (response.ok) {
+          const data = await response.json();
+          setTickets(data);
+        }
+      } catch (error: unknown) {
+        // Don't update state if request was aborted (user navigated away)
+        if (error instanceof Error && error.name === 'AbortError') {
+          console.log('Request aborted - user navigated away');
+          return;
+        }
+        // Only update state if still mounted
+        if (!isMounted) return;
+        console.error('Error fetching tickets:', error);
+      } finally {
+        // Only update loading state if still mounted
+        if (isMounted) {
+          setLoading(false);
+        }
       }
-    } catch (error) {
-      console.error('Error fetching tickets:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
+
+    fetchTickets();
+
+    // Cleanup function - runs when component unmounts or before next effect
+    return () => {
+      isMounted = false;
+      abortController.abort();
+    };
+  }, [filtroEstado, filtroPrioridad, busqueda]);
 
   const getEstadoBadgeClass = (estado: string) => {
     const classes: Record<string, string> = {
