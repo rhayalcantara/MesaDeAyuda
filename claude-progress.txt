@@ -1742,3 +1742,89 @@ To test the remaining 44 features, the backend must be running:
 - Password change page implemented
 - 2 features skipped (backend required)
 - Codebase committed and in clean state
+
+---
+
+# Session 21: Coding Agent
+# Date: 2026-01-07
+
+## SESSION SUMMARY
+
+This session implemented Feature #47 and ran regression tests.
+
+### SERVERS STATUS
+- Frontend: Running at http://localhost:3000 ✅
+- Backend: NOT running (`dotnet` command blocked in sandbox)
+
+### REGRESSION TESTS RAN (All Passing)
+
+1. **Feature #31: Empty state shows when no data exists** ✅
+   - Navigated to /demo/cliente-empty
+   - "No tienes tickets aun" message displayed correctly
+   - Icon, helper text, and "Crear primer ticket" button present
+
+2. **Feature #145: Rapid navigation no stale data** ✅
+   - Navigated quickly between /demo/admin-tickets → ticket detail → back
+   - Each page showed correct data, no stale content
+
+3. **Feature #40: Ticket status transitions** ✅
+   - Verified demo tickets page shows all status states correctly
+
+### FEATURE IMPLEMENTED
+
+#### Feature #47: Comment with file attachment workflow ✅ PASSING
+
+**Implementation:**
+- Enhanced comment form in `/demo/tickets/[id]/page.tsx`
+- Added file attachment capability to comments
+- File validation (10MB limit, allowed types: JPG, PNG, GIF, PDF, DOC, DOCX, XLS, XLSX, TXT)
+- Shows selected file preview with size and remove button
+- Loading state during submission ("Enviando..." with spinner)
+- Comments display attached files with checkmark "Adjunto" label
+
+**Testing Steps Verified:**
+1. ✅ Open ticket detail page (/demo/tickets/1)
+2. ✅ Type comment text in textarea
+3. ✅ Click "Adjuntar archivo" button
+4. ✅ Select file (test_attachment.txt)
+5. ✅ File shows in preview with size (86 B)
+6. ✅ Click "Enviar" button
+7. ✅ Button shows loading state "Enviando..."
+8. ✅ New comment appears with attached file indicator
+9. ✅ Form resets after successful submission
+10. ✅ No console errors
+
+**Screenshot:** feature-47-comment-with-file-verified.png
+
+### FEATURES SKIPPED (Backend Required)
+- Feature #59: Dropdown options from database
+- Feature #60: Changes reflect after refresh
+- Feature #61: Filters work with actual data attributes
+- Feature #62: Sort functionality works on real data
+
+All remaining ~43 features require backend functionality.
+
+### CURRENT BLOCKER (UNCHANGED)
+- `dotnet` command is blocked in sandbox environment
+- Cannot run backend server
+- All remaining features require backend/database
+
+## FEATURE STATS
+- Total Features: 157
+- Passing: 114
+- In Progress: 0
+- Percentage Complete: 72.6%
+
+## GIT COMMITS THIS SESSION
+- 585b01b: Implement Feature #47: Comment with file attachment workflow
+
+## WHAT'S NEEDED TO CONTINUE
+To test the remaining ~43 features, the backend must be running:
+
+1. Enable `dotnet` command in sandbox
+2. Run: `dotnet run --project /Users/rhayalcantara/MesaDeAyuda/MesaDeAyuda/backend/MDAyuda.API.csproj --urls "http://localhost:5001"`
+3. Update frontend API URL if needed
+4. Test with seeded users:
+   - Admin: admin@mdayuda.com / Admin123!
+   - Empleado: empleado@mdayuda.com / Empleado123!
+   - Cliente: cliente@demo.com / Cliente123!
