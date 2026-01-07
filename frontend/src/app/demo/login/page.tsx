@@ -49,25 +49,30 @@ export default function DemoLoginPage() {
   const handleDemoLogin = () => {
     setIsLoading(true);
 
+    // Clear any existing session data first
+    localStorage.removeItem('token');
+    localStorage.removeItem('demo_user');
+
     // Set mock token and user in localStorage
     const user = mockUsers[selectedRole];
     localStorage.setItem('token', 'demo-token-' + selectedRole);
     localStorage.setItem('demo_user', JSON.stringify(user));
 
-    // Redirect based on role
+    // Redirect based on role - use window.location to force full page reload
+    // This ensures AuthContext picks up the new user
     setTimeout(() => {
       switch (user.rol) {
         case 'Admin':
-          router.push('/admin/dashboard');
+          window.location.href = '/admin/dashboard';
           break;
         case 'Empleado':
-          router.push('/empleado/dashboard');
+          window.location.href = '/empleado/dashboard';
           break;
         case 'Cliente':
-          router.push('/cliente/tickets');
+          window.location.href = '/cliente/tickets';
           break;
       }
-    }, 500);
+    }, 300);
   };
 
   const handleTestAdminAccess = () => {
