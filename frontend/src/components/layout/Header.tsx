@@ -79,6 +79,9 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
             <button
               onClick={() => setShowUserMenu(!showUserMenu)}
               className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              aria-label={`Menu de usuario: ${user?.nombre}`}
+              aria-expanded={showUserMenu}
+              aria-haspopup="true"
             >
               <UserCircleIcon className="h-6 w-6 text-gray-600 dark:text-gray-300" />
               <span className="hidden sm:block text-sm font-medium text-gray-700 dark:text-gray-300">

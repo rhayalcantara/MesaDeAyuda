@@ -61,7 +61,12 @@ export default function LoginPage() {
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           <div className="card p-6 space-y-4">
             {error && (
-              <div className="bg-red-50 dark:bg-red-900/50 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 px-4 py-3 rounded-lg text-sm">
+              <div
+                id="login-error"
+                role="alert"
+                aria-live="assertive"
+                className="bg-red-50 dark:bg-red-900/50 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 px-4 py-3 rounded-lg text-sm"
+              >
                 {error}
               </div>
             )}
@@ -78,8 +83,10 @@ export default function LoginPage() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="input"
+                className={`input ${error ? 'border-red-300 dark:border-red-700' : ''}`}
                 placeholder="correo@ejemplo.com"
+                aria-invalid={error ? 'true' : undefined}
+                aria-describedby={error ? 'login-error' : undefined}
               />
             </div>
 
@@ -95,8 +102,10 @@ export default function LoginPage() {
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="input"
+                className={`input ${error ? 'border-red-300 dark:border-red-700' : ''}`}
                 placeholder="••••••••"
+                aria-invalid={error ? 'true' : undefined}
+                aria-describedby={error ? 'login-error' : undefined}
               />
             </div>
 
