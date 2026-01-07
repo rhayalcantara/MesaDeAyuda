@@ -4,6 +4,7 @@ import { useState, useRef } from 'react';
 import Link from 'next/link';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import * as XLSX from 'xlsx';
 
 // Demo data for reports
 const demoTicketStats = {
@@ -46,7 +47,9 @@ const demoSLACompliance = {
 
 export default function DemoReportesPage() {
   const [exporting, setExporting] = useState(false);
+  const [exportingExcel, setExportingExcel] = useState(false);
   const [exportSuccess, setExportSuccess] = useState(false);
+  const [exportSuccessExcel, setExportSuccessExcel] = useState(false);
   const reportRef = useRef<HTMLDivElement>(null);
 
   const formatDate = () => {
@@ -185,6 +188,93 @@ export default function DemoReportesPage() {
     }
   };
 
+  const exportToExcel = async () => {
+    setExportingExcel(true);
+    setExportSuccessExcel(false);
+
+    try {
+      // Create a new workbook
+      const wb = XLSX.utils.book_new();
+
+      // Sheet 1: Resumen General
+      const resumenData = [
+        ['MDAyuda - Reporte de Estadisticas'],
+        [`Generado: ${formatDate()}`],
+        [],
+        ['Resumen General de Tickets'],
+        ['Estado', 'Cantidad'],
+        ['Total de Tickets', demoTicketStats.total],
+        ['Abiertos', demoTicketStats.abiertos],
+        ['En Proceso', demoTicketStats.enProceso],
+        ['En Espera', demoTicketStats.enEspera],
+        ['Resueltos', demoTicketStats.resueltos],
+        ['Cerrados', demoTicketStats.cerrados],
+      ];
+      const wsResumen = XLSX.utils.aoa_to_sheet(resumenData);
+      // Set column widths
+      wsResumen['!cols'] = [{ wch: 25 }, { wch: 15 }];
+      XLSX.utils.book_append_sheet(wb, wsResumen, 'Resumen General');
+
+      // Sheet 2: Tickets por Categoria
+      const categoriaData = [
+        ['Tickets por Categoria'],
+        ['Categoria', 'Total', 'Porcentaje'],
+        ...demoTicketsByCategory.map(item => [item.categoria, item.total, `${item.porcentaje}%`]),
+      ];
+      const wsCategoria = XLSX.utils.aoa_to_sheet(categoriaData);
+      wsCategoria['!cols'] = [{ wch: 25 }, { wch: 10 }, { wch: 15 }];
+      XLSX.utils.book_append_sheet(wb, wsCategoria, 'Por Categoria');
+
+      // Sheet 3: Tickets por Prioridad
+      const prioridadData = [
+        ['Tickets por Prioridad'],
+        ['Prioridad', 'Total', 'Porcentaje'],
+        ...demoTicketsByPriority.map(item => [item.prioridad, item.total, `${item.porcentaje}%`]),
+      ];
+      const wsPrioridad = XLSX.utils.aoa_to_sheet(prioridadData);
+      wsPrioridad['!cols'] = [{ wch: 15 }, { wch: 10 }, { wch: 15 }];
+      XLSX.utils.book_append_sheet(wb, wsPrioridad, 'Por Prioridad');
+
+      // Sheet 4: Rendimiento de Empleados
+      const empleadosData = [
+        ['Rendimiento de Empleados'],
+        ['Empleado', 'Tickets Resueltos', 'Tiempo Promedio', 'Satisfaccion'],
+        ...demoEmployeePerformance.map(item => [
+          item.nombre,
+          item.ticketsResueltos,
+          item.tiempoPromedio,
+          item.satisfaccion,
+        ]),
+      ];
+      const wsEmpleados = XLSX.utils.aoa_to_sheet(empleadosData);
+      wsEmpleados['!cols'] = [{ wch: 20 }, { wch: 18 }, { wch: 18 }, { wch: 15 }];
+      XLSX.utils.book_append_sheet(wb, wsEmpleados, 'Rendimiento Empleados');
+
+      // Sheet 5: Cumplimiento SLA
+      const slaData = [
+        ['Cumplimiento de SLA'],
+        ['Metrica', 'Valor'],
+        ['Tickets con SLA Cumplido', demoSLACompliance.cumplido],
+        ['Tickets con SLA Incumplido', demoSLACompliance.incumplido],
+        ['Porcentaje de Cumplimiento', `${demoSLACompliance.porcentajeCumplimiento}%`],
+      ];
+      const wsSLA = XLSX.utils.aoa_to_sheet(slaData);
+      wsSLA['!cols'] = [{ wch: 30 }, { wch: 15 }];
+      XLSX.utils.book_append_sheet(wb, wsSLA, 'Cumplimiento SLA');
+
+      // Generate the file and trigger download
+      XLSX.writeFile(wb, `reporte-mdayuda-${new Date().toISOString().split('T')[0]}.xlsx`);
+
+      setExportSuccessExcel(true);
+      setTimeout(() => setExportSuccessExcel(false), 3000);
+    } catch (error) {
+      console.error('Error exporting Excel:', error);
+      alert('Error al exportar el Excel. Intente nuevamente.');
+    } finally {
+      setExportingExcel(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8 px-4">
       <div className="max-w-6xl mx-auto space-y-6" ref={reportRef}>
@@ -221,10 +311,32 @@ export default function DemoReportesPage() {
                 </>
               )}
             </button>
+            <button
+              onClick={exportToExcel}
+              disabled={exportingExcel}
+              className="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              {exportingExcel ? (
+                <>
+                  <svg className="animate-spin -ml-1 mr-2 h-5 w-5" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                  </svg>
+                  Exportando...
+                </>
+              ) : (
+                <>
+                  <svg className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  Exportar a Excel
+                </>
+              )}
+            </button>
           </div>
         </div>
 
-        {/* Success message */}
+        {/* Success message for PDF */}
         {exportSuccess && (
           <div className="bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-lg p-4 flex items-center gap-3" role="alert">
             <svg className="h-5 w-5 text-green-600 dark:text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -232,6 +344,18 @@ export default function DemoReportesPage() {
             </svg>
             <span className="text-green-700 dark:text-green-300">
               ¡PDF exportado exitosamente! Revisa tu carpeta de descargas.
+            </span>
+          </div>
+        )}
+
+        {/* Success message for Excel */}
+        {exportSuccessExcel && (
+          <div className="bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-lg p-4 flex items-center gap-3" role="alert">
+            <svg className="h-5 w-5 text-green-600 dark:text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span className="text-green-700 dark:text-green-300">
+              ¡Excel exportado exitosamente! Revisa tu carpeta de descargas.
             </span>
           </div>
         )}
@@ -396,16 +520,17 @@ export default function DemoReportesPage() {
         {/* Feature info */}
         <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
           <h4 className="font-medium text-blue-800 dark:text-blue-200 mb-2">
-            Informacion de Demo - Feature #148
+            Informacion de Demo - Features #148 y #149
           </h4>
           <p className="text-blue-700 dark:text-blue-300 text-sm">
-            Esta pagina demuestra la funcionalidad de <strong>exportacion a PDF</strong>.
+            Esta pagina demuestra la funcionalidad de <strong>exportacion a PDF y Excel</strong>.
           </p>
           <ul className="list-disc list-inside text-sm text-blue-700 dark:text-blue-300 mt-2 space-y-1">
-            <li>Haz clic en &quot;Exportar a PDF&quot; para descargar el reporte</li>
-            <li>El PDF incluye todas las estadisticas mostradas en pantalla</li>
-            <li>El archivo se descarga automaticamente a tu carpeta de descargas</li>
-            <li>El PDF tiene formato profesional con tablas y encabezados</li>
+            <li>Haz clic en &quot;Exportar a PDF&quot; para descargar el reporte en formato PDF</li>
+            <li>Haz clic en &quot;Exportar a Excel&quot; para descargar el reporte en formato Excel</li>
+            <li>Ambos archivos incluyen todas las estadisticas mostradas en pantalla</li>
+            <li>Los archivos se descargan automaticamente a tu carpeta de descargas</li>
+            <li>El Excel contiene multiples hojas con cada seccion del reporte</li>
           </ul>
         </div>
 
