@@ -1,0 +1,524 @@
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using MDAyuda.API.Data;
+using MDAyuda.API.DTOs;
+using MDAyuda.API.Models;
+using MDAyuda.API.Services;
+using System.Security.Claims;
+
+namespace MDAyuda.API.Controllers;
+
+[ApiController]
+[Route("api/[controller]")]
+[Authorize]
+public class TicketsController : ControllerBase
+{
+    private readonly ApplicationDbContext _context;
+    private readonly IEmailService _emailService;
+    private readonly ILogger<TicketsController> _logger;
+
+    public TicketsController(
+        ApplicationDbContext context,
+        IEmailService emailService,
+        ILogger<TicketsController> logger)
+    {
+        _context = context;
+        _emailService = emailService;
+        _logger = logger;
+    }
+
+    private int GetUserId() => int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+    private string GetUserRole() => User.FindFirstValue(ClaimTypes.Role)!;
+
+    [HttpGet]
+    [Authorize(Policy = "EmpleadoOrAdmin")]
+    public async Task<ActionResult<TicketListDto>> GetTickets([FromQuery] TicketFilterDto filter)
+    {
+        var query = _context.Tickets
+            .Include(t => t.Cliente)
+            .Include(t => t.EmpleadoAsignado)
+            .Include(t => t.Categoria)
+            .AsQueryable();
+
+        // Apply filters
+        if (!string.IsNullOrEmpty(filter.Estado))
+            query = query.Where(t => t.Estado == filter.Estado);
+
+        if (!string.IsNullOrEmpty(filter.Prioridad))
+            query = query.Where(t => t.Prioridad == filter.Prioridad);
+
+        if (filter.CategoriaId.HasValue)
+            query = query.Where(t => t.CategoriaId == filter.CategoriaId);
+
+        if (filter.EmpresaId.HasValue)
+            query = query.Where(t => t.Cliente!.EmpresaId == filter.EmpresaId);
+
+        if (filter.EmpleadoId.HasValue)
+            query = query.Where(t => t.EmpleadoAsignadoId == filter.EmpleadoId);
+
+        if (!string.IsNullOrEmpty(filter.Busqueda))
+        {
+            var busqueda = filter.Busqueda.ToLower();
+            query = query.Where(t =>
+                t.Titulo.ToLower().Contains(busqueda) ||
+                t.Descripcion.ToLower().Contains(busqueda) ||
+                t.Id.ToString().Contains(busqueda));
+        }
+
+        if (filter.FechaDesde.HasValue)
+            query = query.Where(t => t.FechaCreacion >= filter.FechaDesde);
+
+        if (filter.FechaHasta.HasValue)
+            query = query.Where(t => t.FechaCreacion <= filter.FechaHasta);
+
+        // Apply sorting
+        query = filter.OrdenarPor switch
+        {
+            "prioridad" => filter.OrdenAscendente
+                ? query.OrderBy(t => t.Prioridad)
+                : query.OrderByDescending(t => t.Prioridad),
+            _ => filter.OrdenAscendente
+                ? query.OrderBy(t => t.FechaCreacion)
+                : query.OrderByDescending(t => t.FechaCreacion)
+        };
+
+        var totalItems = await query.CountAsync();
+        var totalPages = (int)Math.Ceiling(totalItems / (double)filter.PageSize);
+
+        var tickets = await query
+            .Skip((filter.Page - 1) * filter.PageSize)
+            .Take(filter.PageSize)
+            .Select(t => new TicketDto
+            {
+                Id = t.Id,
+                Titulo = t.Titulo,
+                Descripcion = t.Descripcion,
+                ClienteId = t.ClienteId,
+                ClienteNombre = t.Cliente!.Nombre,
+                ClienteEmail = t.Cliente.Email,
+                EmpleadoAsignadoId = t.EmpleadoAsignadoId,
+                EmpleadoAsignadoNombre = t.EmpleadoAsignado != null ? t.EmpleadoAsignado.Nombre : null,
+                CategoriaId = t.CategoriaId,
+                CategoriaNombre = t.Categoria!.Nombre,
+                Prioridad = t.Prioridad,
+                Estado = t.Estado,
+                FechaCreacion = t.FechaCreacion,
+                FechaActualizacion = t.FechaActualizacion,
+                FechaPrimeraRespuesta = t.FechaPrimeraRespuesta,
+                FechaResolucion = t.FechaResolucion,
+                ComentariosCount = t.Comentarios.Count,
+                ArchivosCount = t.Archivos.Count
+            })
+            .ToListAsync();
+
+        return Ok(new TicketListDto
+        {
+            Items = tickets,
+            TotalItems = totalItems,
+            Page = filter.Page,
+            PageSize = filter.PageSize,
+            TotalPages = totalPages
+        });
+    }
+
+    [HttpGet("mis-tickets")]
+    public async Task<ActionResult<TicketListDto>> GetMyTickets([FromQuery] TicketFilterDto filter)
+    {
+        var userId = GetUserId();
+        var userRole = GetUserRole();
+
+        var query = _context.Tickets
+            .Include(t => t.Cliente)
+            .Include(t => t.EmpleadoAsignado)
+            .Include(t => t.Categoria)
+            .AsQueryable();
+
+        if (userRole == "Cliente")
+        {
+            // Get user's empresa visibility configuration
+            var user = await _context.Usuarios
+                .Include(u => u.Empresa)
+                .FirstOrDefaultAsync(u => u.Id == userId);
+
+            if (user?.Empresa?.ConfigVisibilidadTickets == "empresa")
+            {
+                // Show all tickets from the same empresa
+                query = query.Where(t => t.Cliente!.EmpresaId == user.EmpresaId);
+            }
+            else
+            {
+                // Show only own tickets
+                query = query.Where(t => t.ClienteId == userId);
+            }
+        }
+        else if (userRole == "Empleado")
+        {
+            query = query.Where(t => t.EmpleadoAsignadoId == userId);
+        }
+
+        // Apply other filters...
+        if (!string.IsNullOrEmpty(filter.Estado))
+            query = query.Where(t => t.Estado == filter.Estado);
+
+        if (!string.IsNullOrEmpty(filter.Busqueda))
+        {
+            var busqueda = filter.Busqueda.ToLower();
+            query = query.Where(t =>
+                t.Titulo.ToLower().Contains(busqueda) ||
+                t.Descripcion.ToLower().Contains(busqueda));
+        }
+
+        query = query.OrderByDescending(t => t.FechaCreacion);
+
+        var totalItems = await query.CountAsync();
+        var totalPages = (int)Math.Ceiling(totalItems / (double)filter.PageSize);
+
+        var tickets = await query
+            .Skip((filter.Page - 1) * filter.PageSize)
+            .Take(filter.PageSize)
+            .Select(t => new TicketDto
+            {
+                Id = t.Id,
+                Titulo = t.Titulo,
+                Descripcion = t.Descripcion,
+                ClienteId = t.ClienteId,
+                ClienteNombre = t.Cliente!.Nombre,
+                EmpleadoAsignadoId = t.EmpleadoAsignadoId,
+                EmpleadoAsignadoNombre = t.EmpleadoAsignado != null ? t.EmpleadoAsignado.Nombre : null,
+                CategoriaId = t.CategoriaId,
+                CategoriaNombre = t.Categoria!.Nombre,
+                Prioridad = t.Prioridad,
+                Estado = t.Estado,
+                FechaCreacion = t.FechaCreacion,
+                FechaActualizacion = t.FechaActualizacion,
+                ComentariosCount = t.Comentarios.Count,
+                ArchivosCount = t.Archivos.Count
+            })
+            .ToListAsync();
+
+        return Ok(new TicketListDto
+        {
+            Items = tickets,
+            TotalItems = totalItems,
+            Page = filter.Page,
+            PageSize = filter.PageSize,
+            TotalPages = totalPages
+        });
+    }
+
+    [HttpGet("sin-asignar")]
+    [Authorize(Policy = "EmpleadoOrAdmin")]
+    public async Task<ActionResult<List<TicketDto>>> GetUnassignedTickets()
+    {
+        var tickets = await _context.Tickets
+            .Include(t => t.Cliente)
+            .Include(t => t.Categoria)
+            .Where(t => t.EmpleadoAsignadoId == null && t.Estado == "Abierto")
+            .OrderByDescending(t => t.Prioridad == "Alta")
+            .ThenByDescending(t => t.Prioridad == "Media")
+            .ThenBy(t => t.FechaCreacion)
+            .Select(t => new TicketDto
+            {
+                Id = t.Id,
+                Titulo = t.Titulo,
+                Descripcion = t.Descripcion,
+                ClienteId = t.ClienteId,
+                ClienteNombre = t.Cliente!.Nombre,
+                CategoriaId = t.CategoriaId,
+                CategoriaNombre = t.Categoria!.Nombre,
+                Prioridad = t.Prioridad,
+                Estado = t.Estado,
+                FechaCreacion = t.FechaCreacion
+            })
+            .ToListAsync();
+
+        return Ok(tickets);
+    }
+
+    [HttpGet("{id}")]
+    public async Task<ActionResult<TicketDto>> GetTicket(int id)
+    {
+        var ticket = await _context.Tickets
+            .Include(t => t.Cliente)
+            .Include(t => t.EmpleadoAsignado)
+            .Include(t => t.Categoria)
+            .Include(t => t.Comentarios)
+            .Include(t => t.Archivos)
+            .FirstOrDefaultAsync(t => t.Id == id);
+
+        if (ticket == null)
+        {
+            return NotFound(new { message = "Ticket no encontrado" });
+        }
+
+        // Check access permissions
+        var userId = GetUserId();
+        var userRole = GetUserRole();
+
+        if (userRole == "Cliente")
+        {
+            var user = await _context.Usuarios
+                .Include(u => u.Empresa)
+                .FirstOrDefaultAsync(u => u.Id == userId);
+
+            if (user?.Empresa?.ConfigVisibilidadTickets == "empresa")
+            {
+                if (ticket.Cliente!.EmpresaId != user.EmpresaId)
+                {
+                    return Forbid();
+                }
+            }
+            else if (ticket.ClienteId != userId)
+            {
+                return Forbid();
+            }
+        }
+
+        return Ok(new TicketDto
+        {
+            Id = ticket.Id,
+            Titulo = ticket.Titulo,
+            Descripcion = ticket.Descripcion,
+            ClienteId = ticket.ClienteId,
+            ClienteNombre = ticket.Cliente!.Nombre,
+            ClienteEmail = ticket.Cliente.Email,
+            EmpleadoAsignadoId = ticket.EmpleadoAsignadoId,
+            EmpleadoAsignadoNombre = ticket.EmpleadoAsignado?.Nombre,
+            CategoriaId = ticket.CategoriaId,
+            CategoriaNombre = ticket.Categoria!.Nombre,
+            Prioridad = ticket.Prioridad,
+            Estado = ticket.Estado,
+            FechaCreacion = ticket.FechaCreacion,
+            FechaActualizacion = ticket.FechaActualizacion,
+            FechaPrimeraRespuesta = ticket.FechaPrimeraRespuesta,
+            FechaResolucion = ticket.FechaResolucion,
+            ComentariosCount = ticket.Comentarios.Count,
+            ArchivosCount = ticket.Archivos.Count
+        });
+    }
+
+    [HttpPost]
+    public async Task<ActionResult<TicketDto>> CreateTicket([FromBody] CreateTicketDto dto)
+    {
+        var userId = GetUserId();
+        var userRole = GetUserRole();
+
+        // Validate category
+        var categoria = await _context.Categorias.FindAsync(dto.CategoriaId);
+        if (categoria == null || !categoria.Activa)
+        {
+            return BadRequest(new { message = "La categoria seleccionada no existe o no esta activa" });
+        }
+
+        // Validate priority
+        var validPriorities = new[] { "Baja", "Media", "Alta" };
+        if (!validPriorities.Contains(dto.Prioridad))
+        {
+            return BadRequest(new { message = "Prioridad invalida" });
+        }
+
+        var ticket = new Ticket
+        {
+            Titulo = dto.Titulo,
+            Descripcion = dto.Descripcion,
+            ClienteId = userId,
+            CategoriaId = dto.CategoriaId,
+            Prioridad = dto.Prioridad,
+            Estado = "Abierto",
+            FechaCreacion = DateTime.UtcNow,
+            FechaActualizacion = DateTime.UtcNow
+        };
+
+        _context.Tickets.Add(ticket);
+        await _context.SaveChangesAsync();
+
+        // Load related entities
+        await _context.Entry(ticket).Reference(t => t.Cliente).LoadAsync();
+        await _context.Entry(ticket).Reference(t => t.Categoria).LoadAsync();
+
+        _logger.LogInformation("Ticket {TicketId} created by user {UserId}", ticket.Id, userId);
+
+        // Notify employees about new ticket (async, don't wait)
+        _ = NotifyEmployeesAboutNewTicket(ticket);
+
+        return CreatedAtAction(nameof(GetTicket), new { id = ticket.Id }, new TicketDto
+        {
+            Id = ticket.Id,
+            Titulo = ticket.Titulo,
+            Descripcion = ticket.Descripcion,
+            ClienteId = ticket.ClienteId,
+            ClienteNombre = ticket.Cliente!.Nombre,
+            CategoriaId = ticket.CategoriaId,
+            CategoriaNombre = ticket.Categoria!.Nombre,
+            Prioridad = ticket.Prioridad,
+            Estado = ticket.Estado,
+            FechaCreacion = ticket.FechaCreacion,
+            FechaActualizacion = ticket.FechaActualizacion
+        });
+    }
+
+    [HttpPut("{id}")]
+    public async Task<IActionResult> UpdateTicket(int id, [FromBody] UpdateTicketDto dto)
+    {
+        var ticket = await _context.Tickets.FindAsync(id);
+        if (ticket == null)
+        {
+            return NotFound(new { message = "Ticket no encontrado" });
+        }
+
+        var userId = GetUserId();
+        var userRole = GetUserRole();
+
+        // Only cliente who created or admin/empleado can update
+        if (userRole == "Cliente" && ticket.ClienteId != userId)
+        {
+            return Forbid();
+        }
+
+        if (!string.IsNullOrEmpty(dto.Titulo))
+            ticket.Titulo = dto.Titulo;
+
+        if (!string.IsNullOrEmpty(dto.Descripcion))
+            ticket.Descripcion = dto.Descripcion;
+
+        if (dto.CategoriaId.HasValue)
+        {
+            var categoria = await _context.Categorias.FindAsync(dto.CategoriaId);
+            if (categoria == null || !categoria.Activa)
+            {
+                return BadRequest(new { message = "Categoria invalida" });
+            }
+            ticket.CategoriaId = dto.CategoriaId.Value;
+        }
+
+        if (!string.IsNullOrEmpty(dto.Prioridad))
+        {
+            var validPriorities = new[] { "Baja", "Media", "Alta" };
+            if (!validPriorities.Contains(dto.Prioridad))
+            {
+                return BadRequest(new { message = "Prioridad invalida" });
+            }
+            ticket.Prioridad = dto.Prioridad;
+        }
+
+        ticket.FechaActualizacion = DateTime.UtcNow;
+        await _context.SaveChangesAsync();
+
+        return Ok(new { message = "Ticket actualizado exitosamente" });
+    }
+
+    [HttpPut("{id}/asignar")]
+    [Authorize(Policy = "EmpleadoOrAdmin")]
+    public async Task<IActionResult> AssignTicket(int id, [FromBody] AssignTicketDto dto)
+    {
+        var ticket = await _context.Tickets.FindAsync(id);
+        if (ticket == null)
+        {
+            return NotFound(new { message = "Ticket no encontrado" });
+        }
+
+        var empleado = await _context.Usuarios.FindAsync(dto.EmpleadoId);
+        if (empleado == null || empleado.Rol != "Empleado" && empleado.Rol != "Admin" || !empleado.Activo)
+        {
+            return BadRequest(new { message = "Empleado invalido" });
+        }
+
+        ticket.EmpleadoAsignadoId = dto.EmpleadoId;
+        if (ticket.Estado == "Abierto")
+        {
+            ticket.Estado = "EnProceso";
+        }
+        ticket.FechaActualizacion = DateTime.UtcNow;
+
+        await _context.SaveChangesAsync();
+
+        _logger.LogInformation("Ticket {TicketId} assigned to employee {EmpleadoId}", id, dto.EmpleadoId);
+
+        return Ok(new { message = "Ticket asignado exitosamente" });
+    }
+
+    [HttpPut("{id}/estado")]
+    [Authorize(Policy = "EmpleadoOrAdmin")]
+    public async Task<IActionResult> ChangeStatus(int id, [FromBody] ChangeStatusDto dto)
+    {
+        var ticket = await _context.Tickets
+            .Include(t => t.Cliente)
+            .FirstOrDefaultAsync(t => t.Id == id);
+
+        if (ticket == null)
+        {
+            return NotFound(new { message = "Ticket no encontrado" });
+        }
+
+        var validStatuses = new[] { "Abierto", "EnProceso", "EnEspera", "Resuelto", "Cerrado" };
+        if (!validStatuses.Contains(dto.Estado))
+        {
+            return BadRequest(new { message = "Estado invalido" });
+        }
+
+        var previousState = ticket.Estado;
+        ticket.Estado = dto.Estado;
+        ticket.FechaActualizacion = DateTime.UtcNow;
+
+        // Set resolution date if resolved
+        if (dto.Estado == "Resuelto" && ticket.FechaResolucion == null)
+        {
+            ticket.FechaResolucion = DateTime.UtcNow;
+
+            // Notify client
+            if (ticket.Cliente != null)
+            {
+                _ = _emailService.SendTicketResolvedEmailAsync(
+                    ticket.Cliente.Email,
+                    ticket.Titulo,
+                    ticket.Id);
+            }
+        }
+
+        await _context.SaveChangesAsync();
+
+        _logger.LogInformation("Ticket {TicketId} status changed from {OldStatus} to {NewStatus}",
+            id, previousState, dto.Estado);
+
+        return Ok(new { message = "Estado actualizado exitosamente" });
+    }
+
+    [HttpDelete("{id}")]
+    [Authorize(Policy = "AdminOnly")]
+    public async Task<IActionResult> DeleteTicket(int id)
+    {
+        var ticket = await _context.Tickets.FindAsync(id);
+        if (ticket == null)
+        {
+            return NotFound(new { message = "Ticket no encontrado" });
+        }
+
+        _context.Tickets.Remove(ticket);
+        await _context.SaveChangesAsync();
+
+        _logger.LogInformation("Ticket {TicketId} deleted", id);
+
+        return Ok(new { message = "Ticket eliminado exitosamente" });
+    }
+
+    private async Task NotifyEmployeesAboutNewTicket(Ticket ticket)
+    {
+        try
+        {
+            var employees = await _context.Usuarios
+                .Where(u => (u.Rol == "Empleado" || u.Rol == "Admin") && u.Activo)
+                .Select(u => u.Email)
+                .ToListAsync();
+
+            foreach (var email in employees)
+            {
+                await _emailService.SendTicketCreatedEmailAsync(email, ticket.Titulo, ticket.Id);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to notify employees about new ticket {TicketId}", ticket.Id);
+        }
+    }
+}

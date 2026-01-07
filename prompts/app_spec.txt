@@ -1,0 +1,612 @@
+<project_specification>
+  <project_name>MDAyuda</project_name>
+
+  <overview>
+    Sistema de mesa de ayuda donde clientes de múltiples empresas pueden reportar problemas o situaciones con sus sistemas. Los empleados atienden estos tickets, mantienen conversaciones con los clientes, y resuelven los problemas. El sistema incluye gestión de SLA, notificaciones por correo, dashboards y reportes para monitorear el rendimiento del soporte.
+  </overview>
+
+  <technology_stack>
+    <frontend>
+      <framework>Next.js</framework>
+      <styling>Tailwind CSS (configurable themes)</styling>
+      <state_management>React Context / Zustand</state_management>
+    </frontend>
+    <backend>
+      <runtime>C# con ASP.NET Core</runtime>
+      <database>SQL Server</database>
+      <orm>Entity Framework Core</orm>
+    </backend>
+    <communication>
+      <api>REST API</api>
+      <email>SMTP para notificaciones</email>
+    </communication>
+  </technology_stack>
+
+  <prerequisites>
+    <environment_setup>
+      - .NET SDK 8.0 o superior
+      - Node.js 18+ y npm
+      - SQL Server (LocalDB para desarrollo)
+      - Editor de código (VS Code recomendado)
+    </environment_setup>
+  </prerequisites>
+
+  <feature_count>150</feature_count>
+
+  <security_and_access_control>
+    <user_roles>
+      <role name="Administrador">
+        <permissions>
+          - Gestión completa de empleados (CRUD)
+          - Gestión completa de empresas y clientes
+          - Gestión de categorías (sistemas)
+          - Configuración de SLA
+          - Configuración del sistema (colores, timeout, etc.)
+          - Ver todos los reportes y estadísticas
+          - Aprobar solicitudes de registro
+          - Reasignar tickets de empleados desactivados
+        </permissions>
+        <protected_routes>
+          - /admin/*
+          - /configuracion/*
+          - /reportes/*
+        </protected_routes>
+      </role>
+      <role name="Empleado">
+        <permissions>
+          - Ver lista de tickets abiertos
+          - Asignarse tickets y ponerlos en proceso
+          - Agregar comentarios a tickets
+          - Cambiar estado de tickets
+          - Subir archivos a tickets
+          - Aprobar solicitudes de registro de clientes
+          - Ver dashboard de empleado
+        </permissions>
+        <protected_routes>
+          - /empleado/*
+          - /tickets/* (gestión completa)
+        </protected_routes>
+      </role>
+      <role name="Cliente">
+        <permissions>
+          - Crear nuevos tickets
+          - Ver sus propios tickets (o de su empresa según configuración)
+          - Agregar comentarios y archivos a sus tickets
+          - Filtrar y buscar en sus tickets
+        </permissions>
+        <protected_routes>
+          - /cliente/*
+          - /mis-tickets/*
+        </protected_routes>
+      </role>
+    </user_roles>
+    <authentication>
+      <method>Email y contraseña</method>
+      <session_timeout>Configurable, por defecto 60 minutos</session_timeout>
+      <password_requirements>Mínimo 8 caracteres, al menos una mayúscula, una minúscula y un número</password_requirements>
+    </authentication>
+    <registration_flow>
+      - Cliente solicita registro proporcionando datos básicos
+      - Empleado o Admin aprueba la solicitud
+      - Sistema genera contraseña temporal y envía correo
+      - Cliente inicia sesión y cambia contraseña obligatoriamente
+    </registration_flow>
+    <sensitive_operations>
+      - Eliminación de tickets requiere confirmación
+      - Desactivación de usuarios requiere confirmación
+      - Cambios en configuración de SLA requieren confirmación
+    </sensitive_operations>
+  </security_and_access_control>
+
+  <core_features>
+    <autenticacion_y_registro>
+      - Inicio de sesión con email y contraseña
+      - Cierre de sesión
+      - Cambio de contraseña (obligatorio en primer inicio)
+      - Solicitud de registro para clientes
+      - Aprobación de solicitudes por empleado/admin
+      - Envío de correo con credenciales temporales
+      - Timeout de sesión configurable
+    </autenticacion_y_registro>
+
+    <gestion_de_usuarios>
+      - CRUD de empleados (solo admin)
+      - Activar/desactivar empleados
+      - Reasignar tickets al desactivar empleado
+      - Ver lista de clientes
+      - Gestión de clientes por empresa
+    </gestion_de_usuarios>
+
+    <gestion_de_empresas>
+      - CRUD de empresas
+      - Configuración de visibilidad de tickets por empresa
+      - Logo y colores personalizados por empresa
+      - Activar/desactivar empresas
+      - Ver clientes asociados a cada empresa
+    </gestion_de_empresas>
+
+    <gestion_de_categorias>
+      - CRUD de categorías (sistemas)
+      - Activar/desactivar categorías
+      - Las categorías representan los sistemas que los clientes reportan
+    </gestion_de_categorias>
+
+    <tickets_creacion_y_gestion>
+      - Crear ticket con título, descripción, categoría, prioridad
+      - Adjuntar archivos al crear ticket
+      - Ver detalle de ticket
+      - Cambiar estado: Abierto → En Proceso → En Espera → Resuelto → Cerrado
+      - Asignar ticket a empleado
+      - Prioridades: Baja, Media, Alta
+      - Timestamps de creación y actualización
+    </tickets_creacion_y_gestion>
+
+    <comentarios_y_conversacion>
+      - Agregar comentarios a tickets (cliente y empleado)
+      - Adjuntar archivos en comentarios
+      - Historial de conversación ordenado cronológicamente
+      - Indicador de quién agregó cada comentario
+    </comentarios_y_conversacion>
+
+    <archivos_adjuntos>
+      - Subir archivos (máximo 10MB)
+      - Tipos permitidos: JPG, PNG, GIF, PDF, DOC, DOCX, XLS, XLSX, TXT
+      - Descargar archivos
+      - Eliminar archivos (solo quien los subió o admin)
+      - Vista previa de imágenes
+    </archivos_adjuntos>
+
+    <busqueda_y_filtros>
+      - Empleados: filtrar por estado, prioridad, categoría, empresa, fecha
+      - Empleados: búsqueda de texto libre
+      - Clientes: filtrar por estado
+      - Clientes: búsqueda por texto
+      - Ordenamiento por fecha, prioridad
+      - Paginación de resultados
+    </busqueda_y_filtros>
+
+    <dashboard_empleado>
+      - Tickets asignados a mí
+      - Tickets abiertos sin asignar
+      - Resumen del día (tickets atendidos, pendientes)
+      - Acceso rápido a tickets recientes
+    </dashboard_empleado>
+
+    <dashboard_admin>
+      - Estadísticas generales (total tickets, por estado, por prioridad)
+      - Alertas de SLA incumplidos
+      - Métricas de rendimiento por empleado
+      - Gráficos de tendencias
+    </dashboard_admin>
+
+    <configuracion_sla>
+      - Definir tiempo de primera respuesta por prioridad
+      - Definir tiempo de resolución por prioridad
+      - Alertas cuando se acerca el vencimiento
+      - Indicadores visuales de SLA en tickets
+    </configuracion_sla>
+
+    <configuracion_sistema>
+      - Timeout de sesión configurable
+      - Colores primario y secundario
+      - Modo oscuro/claro
+      - Logo del sistema
+    </configuracion_sistema>
+
+    <notificaciones_por_correo>
+      - Al cliente: cuando su solicitud de registro es aprobada
+      - Al cliente: cuando un empleado comenta en su ticket
+      - Al cliente: cuando su ticket es resuelto
+      - Al empleado: cuando se crea un ticket nuevo
+      - Al empleado: cuando un cliente responde a su ticket en proceso
+    </notificaciones_por_correo>
+
+    <reportes>
+      - Tickets por período (mes, semana, día)
+      - Tiempo promedio de resolución
+      - Tickets por categoría
+      - Tickets por empresa
+      - Rendimiento por empleado
+      - Exportar reportes (PDF, Excel)
+    </reportes>
+
+    <interfaz_usuario>
+      - Diseño responsive (desktop, tablet, móvil)
+      - Modo oscuro/claro toggle
+      - Navegación lateral colapsable
+      - Estados vacíos informativos
+      - Indicadores de carga
+      - Mensajes de éxito y error claros
+    </interfaz_usuario>
+  </core_features>
+
+  <database_schema>
+    <tables>
+      <Empresas>
+        - Id (int, PK, auto-increment)
+        - Nombre (nvarchar(100), required)
+        - ConfigVisibilidadTickets (nvarchar(20): 'propios' | 'empresa')
+        - LogoUrl (nvarchar(500), nullable)
+        - ColorPrimario (nvarchar(7), nullable)
+        - Activa (bit, default true)
+        - FechaCreacion (datetime2)
+        - FechaActualizacion (datetime2)
+      </Empresas>
+
+      <Usuarios>
+        - Id (int, PK, auto-increment)
+        - Email (nvarchar(255), unique, required)
+        - PasswordHash (nvarchar(500), required)
+        - Nombre (nvarchar(100), required)
+        - Rol (nvarchar(20): 'Admin' | 'Empleado' | 'Cliente')
+        - EmpresaId (int, FK → Empresas, nullable para Admin/Empleado)
+        - Activo (bit, default true)
+        - RequiereCambioPassword (bit, default false)
+        - FechaCreacion (datetime2)
+        - FechaActualizacion (datetime2)
+        - UltimoAcceso (datetime2, nullable)
+      </Usuarios>
+
+      <SolicitudesRegistro>
+        - Id (int, PK, auto-increment)
+        - Email (nvarchar(255), required)
+        - Nombre (nvarchar(100), required)
+        - EmpresaId (int, FK → Empresas)
+        - Estado (nvarchar(20): 'Pendiente' | 'Aprobada' | 'Rechazada')
+        - FechaSolicitud (datetime2)
+        - FechaResolucion (datetime2, nullable)
+        - AprobadoPorId (int, FK → Usuarios, nullable)
+      </SolicitudesRegistro>
+
+      <Categorias>
+        - Id (int, PK, auto-increment)
+        - Nombre (nvarchar(100), required)
+        - Descripcion (nvarchar(500), nullable)
+        - Activa (bit, default true)
+        - FechaCreacion (datetime2)
+      </Categorias>
+
+      <Tickets>
+        - Id (int, PK, auto-increment)
+        - Titulo (nvarchar(200), required)
+        - Descripcion (nvarchar(max), required)
+        - ClienteId (int, FK → Usuarios, required)
+        - EmpleadoAsignadoId (int, FK → Usuarios, nullable)
+        - CategoriaId (int, FK → Categorias, required)
+        - Prioridad (nvarchar(10): 'Baja' | 'Media' | 'Alta')
+        - Estado (nvarchar(20): 'Abierto' | 'EnProceso' | 'EnEspera' | 'Resuelto' | 'Cerrado')
+        - FechaCreacion (datetime2)
+        - FechaActualizacion (datetime2)
+        - FechaPrimeraRespuesta (datetime2, nullable)
+        - FechaResolucion (datetime2, nullable)
+      </Tickets>
+
+      <Comentarios>
+        - Id (int, PK, auto-increment)
+        - TicketId (int, FK → Tickets, required)
+        - UsuarioId (int, FK → Usuarios, required)
+        - Texto (nvarchar(max), required)
+        - FechaCreacion (datetime2)
+      </Comentarios>
+
+      <Archivos>
+        - Id (int, PK, auto-increment)
+        - TicketId (int, FK → Tickets, required)
+        - ComentarioId (int, FK → Comentarios, nullable)
+        - NombreOriginal (nvarchar(255), required)
+        - NombreAlmacenado (nvarchar(255), required)
+        - TipoMime (nvarchar(100), required)
+        - Tamanio (bigint, required)
+        - SubidoPorId (int, FK → Usuarios, required)
+        - FechaSubida (datetime2)
+      </Archivos>
+
+      <ConfiguracionSLA>
+        - Id (int, PK, auto-increment)
+        - Prioridad (nvarchar(10): 'Baja' | 'Media' | 'Alta')
+        - TiempoRespuestaHoras (int, required)
+        - TiempoResolucionHoras (int, required)
+      </ConfiguracionSLA>
+
+      <ConfiguracionSistema>
+        - Id (int, PK, auto-increment)
+        - Clave (nvarchar(100), unique, required)
+        - Valor (nvarchar(500), required)
+        - Descripcion (nvarchar(200), nullable)
+      </ConfiguracionSistema>
+    </tables>
+  </database_schema>
+
+  <api_endpoints_summary>
+    <autenticacion>
+      - POST /api/auth/login
+      - POST /api/auth/logout
+      - POST /api/auth/cambiar-password
+      - POST /api/auth/solicitar-registro
+      - GET /api/auth/me
+    </autenticacion>
+
+    <usuarios>
+      - GET /api/usuarios
+      - GET /api/usuarios/{id}
+      - POST /api/usuarios
+      - PUT /api/usuarios/{id}
+      - DELETE /api/usuarios/{id}
+      - GET /api/usuarios/empleados
+      - GET /api/usuarios/clientes
+      - PUT /api/usuarios/{id}/activar
+      - PUT /api/usuarios/{id}/desactivar
+    </usuarios>
+
+    <empresas>
+      - GET /api/empresas
+      - GET /api/empresas/{id}
+      - POST /api/empresas
+      - PUT /api/empresas/{id}
+      - DELETE /api/empresas/{id}
+      - GET /api/empresas/{id}/clientes
+    </empresas>
+
+    <categorias>
+      - GET /api/categorias
+      - GET /api/categorias/{id}
+      - POST /api/categorias
+      - PUT /api/categorias/{id}
+      - DELETE /api/categorias/{id}
+    </categorias>
+
+    <tickets>
+      - GET /api/tickets
+      - GET /api/tickets/{id}
+      - POST /api/tickets
+      - PUT /api/tickets/{id}
+      - PUT /api/tickets/{id}/asignar
+      - PUT /api/tickets/{id}/estado
+      - GET /api/tickets/mis-tickets
+      - GET /api/tickets/sin-asignar
+    </tickets>
+
+    <comentarios>
+      - GET /api/tickets/{id}/comentarios
+      - POST /api/tickets/{id}/comentarios
+    </comentarios>
+
+    <archivos>
+      - POST /api/archivos/upload
+      - GET /api/archivos/{id}
+      - DELETE /api/archivos/{id}
+      - GET /api/archivos/{id}/download
+    </archivos>
+
+    <solicitudes_registro>
+      - GET /api/solicitudes-registro
+      - POST /api/solicitudes-registro
+      - PUT /api/solicitudes-registro/{id}/aprobar
+      - PUT /api/solicitudes-registro/{id}/rechazar
+    </solicitudes_registro>
+
+    <configuracion>
+      - GET /api/configuracion/sla
+      - PUT /api/configuracion/sla
+      - GET /api/configuracion/sistema
+      - PUT /api/configuracion/sistema
+    </configuracion>
+
+    <reportes>
+      - GET /api/reportes/estadisticas
+      - GET /api/reportes/tickets-por-periodo
+      - GET /api/reportes/tickets-por-categoria
+      - GET /api/reportes/rendimiento-empleados
+      - GET /api/reportes/sla
+    </reportes>
+  </api_endpoints_summary>
+
+  <ui_layout>
+    <main_structure>
+      - Barra superior: logo, nombre usuario, toggle modo oscuro, cerrar sesión
+      - Navegación lateral colapsable según rol
+      - Área principal de contenido
+      - Footer con información del sistema
+    </main_structure>
+
+    <navigation_by_role>
+      <admin>
+        - Dashboard
+        - Tickets
+        - Empresas
+        - Usuarios (Empleados, Clientes)
+        - Categorías
+        - Solicitudes de Registro
+        - Reportes
+        - Configuración (SLA, Sistema)
+      </admin>
+      <empleado>
+        - Dashboard
+        - Tickets (Todos, Mis Tickets, Sin Asignar)
+        - Solicitudes de Registro
+      </empleado>
+      <cliente>
+        - Mis Tickets
+        - Crear Ticket
+      </cliente>
+    </navigation_by_role>
+
+    <key_screens>
+      - Login / Solicitar Registro
+      - Cambio de Contraseña Obligatorio
+      - Dashboard (según rol)
+      - Lista de Tickets (con filtros y búsqueda)
+      - Detalle de Ticket (con conversación y archivos)
+      - Formulario Crear/Editar Ticket
+      - Gestión de Empresas (CRUD)
+      - Gestión de Usuarios (CRUD)
+      - Gestión de Categorías (CRUD)
+      - Lista de Solicitudes de Registro
+      - Reportes y Estadísticas
+      - Configuración de SLA
+      - Configuración del Sistema
+    </key_screens>
+  </ui_layout>
+
+  <design_system>
+    <color_palette>
+      - Configurable por admin
+      - Defaults: Primario azul (#2563eb), Secundario gris (#64748b)
+      - Estados: Éxito verde, Error rojo, Advertencia amarillo, Info azul
+      - Prioridades: Alta rojo, Media amarillo, Baja verde
+    </color_palette>
+    <typography>
+      - Font family: Inter o system fonts
+      - Tamaños consistentes para headings, body, captions
+    </typography>
+    <components>
+      - Botones con estados (default, hover, disabled, loading)
+      - Inputs con validación visual
+      - Cards para información resumida
+      - Tablas con ordenamiento y paginación
+      - Modales para confirmaciones
+      - Toasts para notificaciones
+      - Badges para estados y prioridades
+    </components>
+  </design_system>
+
+  <implementation_steps>
+    <step number="1">
+      <title>Configuración del Proyecto</title>
+      <tasks>
+        - Crear proyecto Next.js con TypeScript
+        - Crear proyecto ASP.NET Core Web API
+        - Configurar SQL Server y Entity Framework
+        - Configurar estructura de carpetas
+        - Configurar ESLint, Prettier
+      </tasks>
+    </step>
+
+    <step number="2">
+      <title>Base de Datos y Modelos</title>
+      <tasks>
+        - Crear modelos de Entity Framework
+        - Crear migraciones
+        - Configurar DbContext
+        - Seed de datos iniciales (admin, configuración)
+      </tasks>
+    </step>
+
+    <step number="3">
+      <title>Autenticación y Autorización</title>
+      <tasks>
+        - Implementar login/logout con JWT
+        - Middleware de autenticación
+        - Autorización basada en roles
+        - Cambio de contraseña
+        - Flujo de registro de clientes
+      </tasks>
+    </step>
+
+    <step number="4">
+      <title>CRUD de Entidades Base</title>
+      <tasks>
+        - API y UI para Empresas
+        - API y UI para Usuarios
+        - API y UI para Categorías
+        - Validaciones y manejo de errores
+      </tasks>
+    </step>
+
+    <step number="5">
+      <title>Sistema de Tickets</title>
+      <tasks>
+        - API para tickets (CRUD, estados, asignación)
+        - UI para crear y ver tickets
+        - Comentarios y conversación
+        - Subida y descarga de archivos
+      </tasks>
+    </step>
+
+    <step number="6">
+      <title>Búsqueda, Filtros y Paginación</title>
+      <tasks>
+        - Implementar filtros en API
+        - UI de filtros y búsqueda
+        - Paginación
+        - Ordenamiento
+      </tasks>
+    </step>
+
+    <step number="7">
+      <title>Dashboards</title>
+      <tasks>
+        - Dashboard de empleado
+        - Dashboard de admin
+        - Widgets y estadísticas
+      </tasks>
+    </step>
+
+    <step number="8">
+      <title>SLA y Notificaciones</title>
+      <tasks>
+        - Configuración de SLA
+        - Cálculo de tiempos y alertas
+        - Servicio de envío de correos
+        - Notificaciones en eventos clave
+      </tasks>
+    </step>
+
+    <step number="9">
+      <title>Reportes</title>
+      <tasks>
+        - Estadísticas y métricas
+        - Gráficos
+        - Exportación PDF/Excel
+      </tasks>
+    </step>
+
+    <step number="10">
+      <title>Personalización y Temas</title>
+      <tasks>
+        - Modo oscuro/claro
+        - Colores configurables
+        - Logo personalizable
+        - Configuración de timeout
+      </tasks>
+    </step>
+
+    <step number="11">
+      <title>Pulido y Testing</title>
+      <tasks>
+        - Responsive design
+        - Accesibilidad
+        - Manejo de errores
+        - Testing de funcionalidades
+        - Optimización de rendimiento
+      </tasks>
+    </step>
+  </implementation_steps>
+
+  <success_criteria>
+    <functionality>
+      - Todos los roles pueden completar sus flujos de trabajo
+      - Los tickets fluyen correctamente por todos los estados
+      - Las notificaciones se envían en los momentos correctos
+      - Los reportes muestran datos reales y precisos
+    </functionality>
+    <user_experience>
+      - La interfaz es intuitiva y fácil de usar
+      - Los tiempos de carga son aceptables (<3 segundos)
+      - Los mensajes de error son claros y útiles
+      - La navegación es consistente
+    </user_experience>
+    <technical_quality>
+      - El código es limpio y bien organizado
+      - La API sigue buenas prácticas REST
+      - La seguridad está correctamente implementada
+      - No hay datos hardcodeados o mock
+    </technical_quality>
+    <design_polish>
+      - El diseño es consistente en toda la aplicación
+      - El modo oscuro/claro funciona correctamente
+      - La aplicación es responsive
+      - Los componentes tienen estados visuales claros
+    </design_polish>
+  </success_criteria>
+</project_specification>
