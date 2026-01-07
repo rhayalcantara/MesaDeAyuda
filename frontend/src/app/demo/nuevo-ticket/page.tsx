@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 // Demo page to test form validation with field-level errors
 // This simulates a logged-in Cliente user creating a ticket
 // Also demonstrates Feature #72: Unsaved changes warning on form navigation
+// Also demonstrates Feature #46: File upload on ticket creation
 
 interface Categoria {
   id: number;
@@ -18,7 +19,29 @@ interface FormErrors {
   titulo?: string;
   descripcion?: string;
   categoriaId?: string;
+  archivo?: string;
 }
+
+interface UploadedFile {
+  file: File;
+  preview?: string;
+}
+
+// Allowed file types from app_spec.txt
+const ALLOWED_FILE_TYPES = [
+  'image/jpeg',
+  'image/png',
+  'image/gif',
+  'application/pdf',
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/vnd.ms-excel',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'text/plain',
+];
+
+const ALLOWED_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif', 'pdf', 'doc', 'docx', 'xls', 'xlsx', 'txt'];
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
 const clienteNavItems = [
   {
@@ -55,10 +78,22 @@ export default function DemoNuevoTicketPage() {
   const [descripcion, setDescripcion] = useState('');
   const [categoriaId, setCategoriaId] = useState('');
   const [prioridad, setPrioridad] = useState('Media');
+  const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Field-level errors
   const [errors, setErrors] = useState<FormErrors>({});
   const [touched, setTouched] = useState<Record<string, boolean>>({});
+
+  // Created ticket state for Feature #46 verification
+  const [createdTicket, setCreatedTicket] = useState<{
+    id: number;
+    titulo: string;
+    descripcion: string;
+    categoria: string;
+    prioridad: string;
+    archivos: { nombre: string; tipo: string; tamanio: number }[];
+  } | null>(null);
 
   // Unsaved changes modal state (Feature #72)
   const [showUnsavedWarning, setShowUnsavedWarning] = useState(false);
@@ -66,8 +101,70 @@ export default function DemoNuevoTicketPage() {
 
   // Check if form has unsaved changes
   const hasUnsavedChanges = useCallback(() => {
-    return titulo.trim() !== '' || descripcion.trim() !== '' || categoriaId !== '';
-  }, [titulo, descripcion, categoriaId]);
+    return titulo.trim() !== '' || descripcion.trim() !== '' || categoriaId !== '' || uploadedFiles.length > 0;
+  }, [titulo, descripcion, categoriaId, uploadedFiles]);
+
+  // File upload handler
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    const newErrors: FormErrors = { ...errors };
+    delete newErrors.archivo;
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+
+      // Validate file size
+      if (file.size > MAX_FILE_SIZE) {
+        newErrors.archivo = `El archivo "${file.name}" excede el limite de 10MB. Tamaño: ${(file.size / (1024 * 1024)).toFixed(1)} MB`;
+        setErrors(newErrors);
+        return;
+      }
+
+      // Validate file type
+      const extension = file.name.split('.').pop()?.toLowerCase();
+      if (!extension || !ALLOWED_EXTENSIONS.includes(extension)) {
+        newErrors.archivo = `El tipo de archivo "${extension}" no esta permitido. Tipos permitidos: ${ALLOWED_EXTENSIONS.join(', ')}`;
+        setErrors(newErrors);
+        return;
+      }
+
+      // Create preview for images
+      const uploadedFile: UploadedFile = { file };
+      if (file.type.startsWith('image/')) {
+        uploadedFile.preview = URL.createObjectURL(file);
+      }
+
+      setUploadedFiles(prev => [...prev, uploadedFile]);
+    }
+
+    setErrors(newErrors);
+    // Reset file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  // Remove uploaded file
+  const handleRemoveFile = (index: number) => {
+    setUploadedFiles(prev => {
+      const newFiles = [...prev];
+      // Revoke object URL to prevent memory leaks
+      if (newFiles[index].preview) {
+        URL.revokeObjectURL(newFiles[index].preview!);
+      }
+      newFiles.splice(index, 1);
+      return newFiles;
+    });
+  };
+
+  // Format file size
+  const formatFileSize = (bytes: number) => {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
 
   useEffect(() => {
     setMounted(true);
@@ -189,13 +286,35 @@ export default function DemoNuevoTicketPage() {
 
     // Simulate API call
     setTimeout(() => {
-      setSuccess('Ticket creado exitosamente! (Demo - no se guarda realmente)');
+      // Create ticket object with attached files (Feature #46)
+      const categoria = demoCategorias.find(c => c.id === parseInt(categoriaId));
+      const ticket = {
+        id: Math.floor(Math.random() * 1000) + 100,
+        titulo,
+        descripcion,
+        categoria: categoria?.nombre || 'Sin categoria',
+        prioridad,
+        archivos: uploadedFiles.map(f => ({
+          nombre: f.file.name,
+          tipo: f.file.type,
+          tamanio: f.file.size,
+        })),
+      };
+
+      setCreatedTicket(ticket);
+      setSuccess(`Ticket #${ticket.id} creado exitosamente!${uploadedFiles.length > 0 ? ` Se adjuntaron ${uploadedFiles.length} archivo(s).` : ''}`);
       setIsLoading(false);
+
       // Reset form
       setTitulo('');
       setDescripcion('');
       setCategoriaId('');
       setPrioridad('Media');
+      // Clear uploaded files and revoke URLs
+      uploadedFiles.forEach(f => {
+        if (f.preview) URL.revokeObjectURL(f.preview);
+      });
+      setUploadedFiles([]);
       setTouched({});
       setErrors({});
     }, 1500);
@@ -336,6 +455,41 @@ export default function DemoNuevoTicketPage() {
                   aria-live="polite"
                 >
                   {success}
+                </div>
+              )}
+
+              {/* Created Ticket Detail - Feature #46 Verification */}
+              {createdTicket && (
+                <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                  <h3 className="text-lg font-semibold text-blue-800 dark:text-blue-300 mb-3">
+                    Detalle del Ticket Creado
+                  </h3>
+                  <div className="space-y-2 text-sm text-blue-700 dark:text-blue-400">
+                    <p><strong>ID:</strong> #{createdTicket.id}</p>
+                    <p><strong>Titulo:</strong> {createdTicket.titulo}</p>
+                    <p><strong>Categoria:</strong> {createdTicket.categoria}</p>
+                    <p><strong>Prioridad:</strong> {createdTicket.prioridad}</p>
+                    <p><strong>Descripcion:</strong> {createdTicket.descripcion.substring(0, 100)}...</p>
+                    {createdTicket.archivos.length > 0 && (
+                      <div>
+                        <strong>Archivos adjuntos ({createdTicket.archivos.length}):</strong>
+                        <ul className="list-disc list-inside ml-2 mt-1">
+                          {createdTicket.archivos.map((archivo, index) => (
+                            <li key={index}>
+                              {archivo.nombre} ({formatFileSize(archivo.tamanio)})
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setCreatedTicket(null)}
+                    className="mt-3 text-sm text-blue-600 dark:text-blue-400 hover:underline"
+                  >
+                    Crear otro ticket
+                  </button>
                 </div>
               )}
 
@@ -483,6 +637,94 @@ export default function DemoNuevoTicketPage() {
                 )}
               </div>
 
+              {/* File Upload Section - Feature #46 */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Archivos adjuntos (opcional)
+                </label>
+                <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-4">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    id="archivo"
+                    onChange={handleFileSelect}
+                    accept=".jpg,.jpeg,.png,.gif,.pdf,.doc,.docx,.xls,.xlsx,.txt"
+                    className="hidden"
+                    multiple
+                  />
+                  <div className="text-center">
+                    <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="mt-2 px-4 py-2 bg-primary-100 dark:bg-primary-900 text-primary-700 dark:text-primary-300 rounded-lg hover:bg-primary-200 dark:hover:bg-primary-800 transition-colors font-medium text-sm"
+                    >
+                      Seleccionar archivos
+                    </button>
+                    <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                      JPG, PNG, GIF, PDF, DOC, DOCX, XLS, XLSX, TXT (max. 10MB cada uno)
+                    </p>
+                  </div>
+
+                  {/* Uploaded files list */}
+                  {uploadedFiles.length > 0 && (
+                    <div className="mt-4 space-y-2">
+                      <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                        Archivos seleccionados ({uploadedFiles.length}):
+                      </p>
+                      {uploadedFiles.map((uploadedFile, index) => (
+                        <div
+                          key={index}
+                          className="flex items-center gap-3 p-2 bg-gray-50 dark:bg-gray-700 rounded-lg"
+                        >
+                          {/* Preview for images */}
+                          {uploadedFile.preview ? (
+                            <img
+                              src={uploadedFile.preview}
+                              alt={uploadedFile.file.name}
+                              className="w-10 h-10 object-cover rounded"
+                            />
+                          ) : (
+                            <div className="w-10 h-10 bg-gray-200 dark:bg-gray-600 rounded flex items-center justify-center">
+                              <svg className="w-5 h-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                              </svg>
+                            </div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-gray-700 dark:text-gray-300 truncate">
+                              {uploadedFile.file.name}
+                            </p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">
+                              {formatFileSize(uploadedFile.file.size)}
+                            </p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveFile(index)}
+                            className="p-1 text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+                            aria-label={`Eliminar ${uploadedFile.file.name}`}
+                          >
+                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* File error message */}
+                {errors.archivo && (
+                  <p className="mt-1 text-sm text-red-600 dark:text-red-400" role="alert">
+                    {errors.archivo}
+                  </p>
+                )}
+              </div>
+
               {/* Buttons */}
               <div className="flex flex-col sm:flex-row gap-3 pt-4">
                 <button
@@ -532,17 +774,19 @@ export default function DemoNuevoTicketPage() {
             {/* Demo info box */}
             <div className="mt-6 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
               <h4 className="text-sm font-semibold text-blue-800 dark:text-blue-300 mb-2">
-                Informacion de Demo - Features #48 y #72
+                Informacion de Demo - Features #46, #48 y #72
               </h4>
               <p className="text-sm text-blue-700 dark:text-blue-400 mb-2">
-                Esta pagina demuestra la <strong>validacion de campos con errores especificos</strong> y el <strong>aviso de cambios sin guardar</strong>.
+                Esta pagina demuestra la <strong>subida de archivos al crear ticket</strong>, <strong>validacion de campos</strong> y el <strong>aviso de cambios sin guardar</strong>.
               </p>
               <ul className="list-disc list-inside text-sm text-blue-700 dark:text-blue-400 space-y-1">
+                <li><strong>Feature #46:</strong> Adjunte archivos usando el boton &quot;Seleccionar archivos&quot;</li>
+                <li>Tipos permitidos: JPG, PNG, GIF, PDF, DOC, DOCX, XLS, XLSX, TXT (max 10MB)</li>
+                <li>Los archivos se muestran con vista previa (imagenes) o icono</li>
+                <li>Al crear el ticket, los archivos aparecen en el detalle</li>
                 <li>Intente enviar el formulario vacio para ver errores de campo</li>
                 <li>Cada campo muestra su propio mensaje de error especifico</li>
-                <li>Los errores aparecen al perder el foco o al enviar</li>
                 <li>Los campos con error tienen borde rojo</li>
-                <li>Los mensajes de error son accesibles (role=&quot;alert&quot;)</li>
                 <li><strong>Feature #72:</strong> Escriba algo en el formulario e intente navegar a &quot;Mis Tickets&quot; o &quot;Cancelar&quot;</li>
                 <li>Aparecera un aviso preguntando si desea descartar los cambios</li>
               </ul>
