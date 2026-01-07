@@ -218,12 +218,63 @@ export default function DemoTicketDetailPage() {
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [uploadFileName, setUploadFileName] = useState<string>('');
   const [uploadedFiles, setUploadedFiles] = useState<Archivo[]>([]);
+  const [uploadError, setUploadError] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Max file size: 10MB
+  const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB in bytes
+
+  // Allowed file types
+  const ALLOWED_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif', 'pdf', 'doc', 'docx', 'xls', 'xlsx', 'txt'];
+  const ALLOWED_MIME_TYPES = [
+    'image/jpeg',
+    'image/png',
+    'image/gif',
+    'application/pdf',
+    'application/msword',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'application/vnd.ms-excel',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    'text/plain',
+  ];
+
+  // Helper to get file extension
+  const getFileExtension = (filename: string): string => {
+    const parts = filename.split('.');
+    return parts.length > 1 ? parts[parts.length - 1].toLowerCase() : '';
+  };
 
   // Simulated file upload with progress indicator
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
+
+    // Clear any previous error
+    setUploadError('');
+
+    // Check file type by extension and MIME type
+    const extension = getFileExtension(file.name);
+    const isValidExtension = ALLOWED_EXTENSIONS.includes(extension);
+    const isValidMimeType = ALLOWED_MIME_TYPES.includes(file.type) || file.type === '';
+
+    if (!isValidExtension) {
+      setUploadError(`El tipo de archivo ".${extension}" no esta permitido. Tipos permitidos: JPG, PNG, GIF, PDF, DOC, DOCX, XLS, XLSX, TXT.`);
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+      return;
+    }
+
+    // Check file size
+    if (file.size > MAX_FILE_SIZE) {
+      setUploadError(`El archivo "${file.name}" excede el limite de 10MB. Tamaño del archivo: ${formatFileSize(file.size)}. Por favor, seleccione un archivo mas pequeño.`);
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+      return;
+    }
 
     setUploadFileName(file.name);
     setUploadProgress(0);
@@ -763,6 +814,38 @@ export default function DemoTicketDetailPage() {
                   </div>
                 )}
 
+                {/* File upload error message */}
+                {uploadError && (
+                  <div
+                    className="mb-4 p-4 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded-lg"
+                    role="alert"
+                    aria-live="assertive"
+                  >
+                    <div className="flex items-start gap-3">
+                      <svg className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" aria-hidden="true">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                      </svg>
+                      <div className="flex-1">
+                        <h4 className="text-sm font-semibold text-red-800 dark:text-red-200">
+                          {uploadError.includes('tipo de archivo') ? 'Tipo de archivo no permitido' : 'Archivo demasiado grande'}
+                        </h4>
+                        <p className="text-sm text-red-700 dark:text-red-300 mt-1">
+                          {uploadError}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => setUploadError('')}
+                        className="text-red-500 hover:text-red-700 dark:hover:text-red-300"
+                        aria-label="Cerrar mensaje de error"
+                      >
+                        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                )}
+
                 {/* Upload button and hidden input */}
                 <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
                   <input
@@ -772,17 +855,25 @@ export default function DemoTicketDetailPage() {
                     className="hidden"
                     aria-label="Seleccionar archivo para subir"
                   />
-                  <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={uploadProgress !== null}
-                    className="flex items-center gap-2 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-medium rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
-                    </svg>
-                    {uploadProgress !== null ? 'Subiendo...' : 'Subir archivo'}
-                  </button>
+                  <div className="flex flex-col gap-3">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setUploadError('');
+                        fileInputRef.current?.click();
+                      }}
+                      disabled={uploadProgress !== null}
+                      className="flex items-center gap-2 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-medium rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed w-fit"
+                    >
+                      <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+                      </svg>
+                      {uploadProgress !== null ? 'Subiendo...' : 'Subir archivo'}
+                    </button>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      Tamaño maximo: 10MB. Tipos permitidos: JPG, PNG, GIF, PDF, DOC, DOCX, XLS, XLSX, TXT
+                    </p>
+                  </div>
                 </div>
               </div>
             )}
