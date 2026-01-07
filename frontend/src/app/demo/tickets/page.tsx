@@ -165,7 +165,30 @@ function StatusBadge({ estado }: { estado: Ticket['estado'] }) {
 }
 
 export default function DemoTicketsPage() {
-  const [tickets] = useState(demoTickets);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filteredTickets, setFilteredTickets] = useState(demoTickets);
+
+  // Handle search
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchTerm.trim() === '') {
+      setFilteredTickets(demoTickets);
+    } else {
+      const filtered = demoTickets.filter(
+        ticket =>
+          ticket.titulo.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          ticket.cliente.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          ticket.categoria.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+      setFilteredTickets(filtered);
+    }
+  };
+
+  // Clear search
+  const handleClearSearch = () => {
+    setSearchTerm('');
+    setFilteredTickets(demoTickets);
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8 px-4">
@@ -177,6 +200,45 @@ export default function DemoTicketsPage() {
           <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
             Esta pagina demuestra indicadores de estado y prioridad accesibles
           </p>
+        </div>
+
+        {/* Search bar */}
+        <div className="mb-6 bg-white dark:bg-gray-800 rounded-lg shadow p-4">
+          <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-3">
+            <div className="flex-1">
+              <label htmlFor="search" className="sr-only">Buscar tickets</label>
+              <input
+                id="search"
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Buscar por titulo, cliente o categoria..."
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              />
+            </div>
+            <div className="flex gap-2">
+              <button
+                type="submit"
+                className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+              >
+                Buscar
+              </button>
+              {searchTerm && (
+                <button
+                  type="button"
+                  onClick={handleClearSearch}
+                  className="px-4 py-2 bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors"
+                >
+                  Limpiar
+                </button>
+              )}
+            </div>
+          </form>
+          {searchTerm && (
+            <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+              Buscando: &quot;{searchTerm}&quot; - {filteredTickets.length} resultado(s) encontrado(s)
+            </p>
+          )}
         </div>
 
         {/* Accessibility information */}
@@ -192,7 +254,40 @@ export default function DemoTicketsPage() {
           </ul>
         </div>
 
-        {/* Tickets table */}
+        {/* No results message */}
+        {filteredTickets.length === 0 && (
+          <div className="mb-6 bg-white dark:bg-gray-800 rounded-lg shadow p-8 text-center">
+            <svg
+              className="mx-auto h-12 w-12 text-gray-400"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              aria-hidden="true"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+              />
+            </svg>
+            <h3 className="mt-4 text-lg font-medium text-gray-900 dark:text-white">
+              No se encontraron resultados
+            </h3>
+            <p className="mt-2 text-gray-500 dark:text-gray-400">
+              No hay tickets que coincidan con &quot;{searchTerm}&quot;
+            </p>
+            <button
+              onClick={handleClearSearch}
+              className="mt-4 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+            >
+              Limpiar busqueda
+            </button>
+          </div>
+        )}
+
+        {/* Tickets table - only show if there are results */}
+        {filteredTickets.length > 0 && (
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
             <thead className="bg-gray-50 dark:bg-gray-700">
@@ -218,7 +313,7 @@ export default function DemoTicketsPage() {
               </tr>
             </thead>
             <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-              {tickets.map((ticket) => (
+              {filteredTickets.map((ticket) => (
                 <tr key={ticket.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
                     #{ticket.id}
@@ -253,6 +348,7 @@ export default function DemoTicketsPage() {
             </tbody>
           </table>
         </div>
+        )}
 
         {/* Legend */}
         <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
