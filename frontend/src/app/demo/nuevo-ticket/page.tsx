@@ -1,12 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 
 // Demo page to test form validation with field-level errors
 // This simulates a logged-in Cliente user creating a ticket
+// Also demonstrates Feature #72: Unsaved changes warning on form navigation
 
 interface Categoria {
   id: number;
@@ -45,6 +46,7 @@ export default function DemoNuevoTicketPage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   const pathname = usePathname();
+  const router = useRouter();
 
   // Form state
   const [isLoading, setIsLoading] = useState(false);
@@ -58,9 +60,57 @@ export default function DemoNuevoTicketPage() {
   const [errors, setErrors] = useState<FormErrors>({});
   const [touched, setTouched] = useState<Record<string, boolean>>({});
 
+  // Unsaved changes modal state (Feature #72)
+  const [showUnsavedWarning, setShowUnsavedWarning] = useState(false);
+  const [pendingNavigation, setPendingNavigation] = useState<string | null>(null);
+
+  // Check if form has unsaved changes
+  const hasUnsavedChanges = useCallback(() => {
+    return titulo.trim() !== '' || descripcion.trim() !== '' || categoriaId !== '';
+  }, [titulo, descripcion, categoriaId]);
+
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // Handle browser back/refresh with unsaved changes (Feature #72)
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasUnsavedChanges()) {
+        e.preventDefault();
+        e.returnValue = ''; // Required for Chrome
+        return ''; // Required for some browsers
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [hasUnsavedChanges]);
+
+  // Handle navigation with unsaved changes warning
+  const handleNavigationClick = (href: string) => {
+    if (hasUnsavedChanges()) {
+      setPendingNavigation(href);
+      setShowUnsavedWarning(true);
+    } else {
+      router.push(href);
+    }
+  };
+
+  // Confirm leaving with unsaved changes
+  const confirmNavigation = () => {
+    if (pendingNavigation) {
+      router.push(pendingNavigation);
+    }
+    setShowUnsavedWarning(false);
+    setPendingNavigation(null);
+  };
+
+  // Cancel navigation, stay on form
+  const cancelNavigation = () => {
+    setShowUnsavedWarning(false);
+    setPendingNavigation(null);
+  };
 
   const handleToggleSidebar = () => {
     if (typeof window !== 'undefined' && window.innerWidth < 768) {
@@ -231,11 +281,13 @@ export default function DemoNuevoTicketPage() {
 
               return (
                 <li key={item.name}>
-                  <Link
-                    href={item.href}
-                    onClick={handleMobileMenuClose}
+                  <button
+                    onClick={() => {
+                      handleMobileMenuClose();
+                      handleNavigationClick(item.href);
+                    }}
                     className={cn(
-                      'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
+                      'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors w-full text-left',
                       isActive
                         ? 'bg-primary-50 text-primary-700 dark:bg-primary-900/50 dark:text-primary-300'
                         : 'text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700'
@@ -248,7 +300,7 @@ export default function DemoNuevoTicketPage() {
                     <span className={cn('md:hidden', !sidebarCollapsed && 'md:inline')}>
                       {item.name}
                     </span>
-                  </Link>
+                  </button>
                 </li>
               );
             })}
@@ -467,22 +519,23 @@ export default function DemoNuevoTicketPage() {
                     'Crear Ticket'
                   )}
                 </button>
-                <Link
-                  href="/demo/cliente-empty"
+                <button
+                  type="button"
+                  onClick={() => handleNavigationClick('/demo/cliente-empty')}
                   className="flex-1 py-3 px-4 bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors font-medium text-center"
                 >
                   Cancelar
-                </Link>
+                </button>
               </div>
             </form>
 
             {/* Demo info box */}
             <div className="mt-6 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
               <h4 className="text-sm font-semibold text-blue-800 dark:text-blue-300 mb-2">
-                Informacion de Demo - Feature #48
+                Informacion de Demo - Features #48 y #72
               </h4>
               <p className="text-sm text-blue-700 dark:text-blue-400 mb-2">
-                Esta pagina demuestra la <strong>validacion de campos con errores especificos</strong>.
+                Esta pagina demuestra la <strong>validacion de campos con errores especificos</strong> y el <strong>aviso de cambios sin guardar</strong>.
               </p>
               <ul className="list-disc list-inside text-sm text-blue-700 dark:text-blue-400 space-y-1">
                 <li>Intente enviar el formulario vacio para ver errores de campo</li>
@@ -490,11 +543,48 @@ export default function DemoNuevoTicketPage() {
                 <li>Los errores aparecen al perder el foco o al enviar</li>
                 <li>Los campos con error tienen borde rojo</li>
                 <li>Los mensajes de error son accesibles (role=&quot;alert&quot;)</li>
+                <li><strong>Feature #72:</strong> Escriba algo en el formulario e intente navegar a &quot;Mis Tickets&quot; o &quot;Cancelar&quot;</li>
+                <li>Aparecera un aviso preguntando si desea descartar los cambios</li>
               </ul>
             </div>
           </div>
         </div>
       </main>
+
+      {/* Unsaved Changes Warning Modal (Feature #72) */}
+      {showUnsavedWarning && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="unsaved-warning-title">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="flex-shrink-0 w-10 h-10 rounded-full bg-yellow-100 dark:bg-yellow-900 flex items-center justify-center">
+                <svg className="w-6 h-6 text-yellow-600 dark:text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+              </div>
+              <h3 id="unsaved-warning-title" className="text-lg font-semibold text-gray-900 dark:text-white">
+                Cambios sin guardar
+              </h3>
+            </div>
+            <p className="text-gray-600 dark:text-gray-400 mb-6">
+              Tiene cambios sin guardar en el formulario. Si sale ahora, perdera toda la informacion ingresada.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={cancelNavigation}
+                className="flex-1 py-2 px-4 bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors font-medium"
+              >
+                Seguir editando
+              </button>
+              <button
+                onClick={confirmNavigation}
+                className="flex-1 py-2 px-4 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium"
+              >
+                Descartar cambios
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
