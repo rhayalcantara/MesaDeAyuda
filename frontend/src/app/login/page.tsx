@@ -18,10 +18,36 @@ export default function LoginPage() {
   const searchParams = useSearchParams();
   const redirectUrl = searchParams.get('redirect');
 
+  // Demo mode: simulate different login scenarios for testing
+  // Use these test emails to trigger specific errors:
+  // - demo-401@test.com -> Invalid credentials (401)
+  // - demo-403@test.com -> Account disabled (403)
+  // - demo-500@test.com -> Server error (500)
+  // - Any other email -> attempts real login (may fail with network error if backend down)
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setIsLoading(true);
+
+    // Demo mode for testing error messages
+    if (email === 'demo-401@test.com') {
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      setError('Credenciales incorrectas. Por favor, verifique su correo y contrasena.');
+      setIsLoading(false);
+      return;
+    }
+    if (email === 'demo-403@test.com') {
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      setError('Su cuenta ha sido desactivada. Contacte al administrador.');
+      setIsLoading(false);
+      return;
+    }
+    if (email === 'demo-500@test.com') {
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      setError('Error en el servidor. Por favor, intente nuevamente mas tarde.');
+      setIsLoading(false);
+      return;
+    }
 
     try {
       // Pass the redirect URL if present (from ?redirect= query param)
