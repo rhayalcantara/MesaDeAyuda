@@ -100,7 +100,7 @@ export default function Sidebar({ collapsed = false, mobileOpen = false, onMobil
           className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
           aria-label="Cerrar menu"
         >
-          <XMarkIcon className="h-6 w-6 text-gray-600 dark:text-gray-300" />
+          <XMarkIcon className="h-6 w-6 text-gray-600 dark:text-gray-300" aria-hidden="true" />
         </button>
       </div>
 
@@ -123,7 +123,7 @@ export default function Sidebar({ collapsed = false, mobileOpen = false, onMobil
                   )}
                   title={collapsed ? item.name : undefined}
                 >
-                  <item.icon className="h-5 w-5 flex-shrink-0" />
+                  <item.icon className="h-5 w-5 flex-shrink-0" aria-hidden="true" />
                   {/* On mobile always show text, on desktop respect collapsed state */}
                   <span className={cn('md:hidden', !collapsed && 'md:inline')}>
                     {item.name}

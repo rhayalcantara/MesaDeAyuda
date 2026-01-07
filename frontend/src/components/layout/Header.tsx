@@ -49,7 +49,7 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
             className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
             aria-label="Toggle sidebar"
           >
-            <Bars3Icon className="h-6 w-6 text-gray-600 dark:text-gray-300" />
+            <Bars3Icon className="h-6 w-6 text-gray-600 dark:text-gray-300" aria-hidden="true" />
           </button>
 
           <Link href="/" className="flex items-center gap-2">
@@ -68,9 +68,9 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
             aria-label="Toggle theme"
           >
             {theme === 'light' ? (
-              <MoonIcon className="h-5 w-5 text-gray-600 dark:text-gray-300" />
+              <MoonIcon className="h-5 w-5 text-gray-600 dark:text-gray-300" aria-hidden="true" />
             ) : (
-              <SunIcon className="h-5 w-5 text-gray-600 dark:text-gray-300" />
+              <SunIcon className="h-5 w-5 text-gray-600 dark:text-gray-300" aria-hidden="true" />
             )}
           </button>
 
@@ -83,7 +83,7 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
               aria-expanded={showUserMenu}
               aria-haspopup="true"
             >
-              <UserCircleIcon className="h-6 w-6 text-gray-600 dark:text-gray-300" />
+              <UserCircleIcon className="h-6 w-6 text-gray-600 dark:text-gray-300" aria-hidden="true" />
               <span className="hidden sm:block text-sm font-medium text-gray-700 dark:text-gray-300">
                 {user?.nombre}
               </span>
@@ -108,7 +108,7 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
                   onClick={() => setShowUserMenu(false)}
                   className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
                 >
-                  <Cog6ToothIcon className="h-4 w-4" />
+                  <Cog6ToothIcon className="h-4 w-4" aria-hidden="true" />
                   Configuracion
                 </Link>
 
@@ -116,7 +116,7 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
                   onClick={handleLogout}
                   className="flex items-center gap-2 w-full px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700"
                 >
-                  <ArrowRightOnRectangleIcon className="h-4 w-4" />
+                  <ArrowRightOnRectangleIcon className="h-4 w-4" aria-hidden="true" />
                   Cerrar sesion
                 </button>
               </div>

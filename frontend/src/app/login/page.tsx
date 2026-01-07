@@ -38,9 +38,9 @@ export default function LoginPage() {
           aria-label="Toggle theme"
         >
           {theme === 'light' ? (
-            <MoonIcon className="h-6 w-6 text-gray-600 dark:text-gray-300" />
+            <MoonIcon className="h-6 w-6 text-gray-600 dark:text-gray-300" aria-hidden="true" />
           ) : (
-            <SunIcon className="h-6 w-6 text-gray-600 dark:text-gray-300" />
+            <SunIcon className="h-6 w-6 text-gray-600 dark:text-gray-300" aria-hidden="true" />
           )}
         </button>
       </div>
