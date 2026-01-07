@@ -46,6 +46,10 @@ public class Ticket
 
     public DateTime? FechaResolucion { get; set; }
 
+    // Concurrency token for optimistic locking
+    [Timestamp]
+    public byte[]? RowVersion { get; set; }
+
     // Navigation properties
     public ICollection<Comentario> Comentarios { get; set; } = new List<Comentario>();
     public ICollection<Archivo> Archivos { get; set; } = new List<Archivo>();

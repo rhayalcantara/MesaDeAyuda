@@ -6,6 +6,19 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
 
+// Helper function to get today's date in YYYY-MM-DD format
+const getTodayDate = () => {
+  const today = new Date();
+  return today.toISOString().split('T')[0];
+};
+
+// Helper function to get date N days ago
+const getDateDaysAgo = (days: number) => {
+  const date = new Date();
+  date.setDate(date.getDate() - days);
+  return date.toISOString().split('T')[0];
+};
+
 // Demo data for reports - all categories
 const allDemoTicketsByCategory = [
   { categoria: 'Sistema de Ventas', total: 45, porcentaje: 28.8 },
@@ -45,6 +58,10 @@ export default function DemoReportesPage() {
   const [exportSuccess, setExportSuccess] = useState(false);
   const [exportSuccessExcel, setExportSuccessExcel] = useState(false);
   const [filtroCategoria, setFiltroCategoria] = useState('');
+  // Date pickers default to sensible dates (Feature #92)
+  // Start date defaults to 30 days ago, end date defaults to today
+  const [fechaInicio, setFechaInicio] = useState(() => getDateDaysAgo(30));
+  const [fechaFin, setFechaFin] = useState(() => getTodayDate());
   const reportRef = useRef<HTMLDivElement>(null);
 
   // Filtered data based on category selection
@@ -362,10 +379,38 @@ export default function DemoReportesPage() {
             </p>
           </div>
           <div className="flex flex-wrap gap-3 items-center">
+            {/* Date Range Filter - Feature #92 */}
+            <div className="flex items-center gap-2">
+              <label htmlFor="fechaInicio" className="text-sm text-gray-600 dark:text-gray-400">
+                Desde:
+              </label>
+              <input
+                type="date"
+                id="fechaInicio"
+                value={fechaInicio}
+                max={fechaFin}
+                onChange={(e) => setFechaInicio(e.target.value)}
+                className="px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 dark:text-white"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <label htmlFor="fechaFin" className="text-sm text-gray-600 dark:text-gray-400">
+                Hasta:
+              </label>
+              <input
+                type="date"
+                id="fechaFin"
+                value={fechaFin}
+                min={fechaInicio}
+                max={getTodayDate()}
+                onChange={(e) => setFechaFin(e.target.value)}
+                className="px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 dark:text-white"
+              />
+            </div>
             {/* Category Filter */}
             <div className="flex items-center gap-2">
               <label htmlFor="filtroCategoria" className="text-sm text-gray-600 dark:text-gray-400">
-                Filtrar por:
+                Categoria:
               </label>
               <select
                 id="filtroCategoria"
@@ -632,12 +677,19 @@ export default function DemoReportesPage() {
         {/* Feature info */}
         <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
           <h4 className="font-medium text-blue-800 dark:text-blue-200 mb-2">
-            Informacion de Demo - Features #148, #149 y #150
+            Informacion de Demo - Features #92, #148, #149 y #150
           </h4>
           <p className="text-blue-700 dark:text-blue-300 text-sm">
-            Esta pagina demuestra la funcionalidad de <strong>exportacion a PDF, Excel con filtros</strong>.
+            Esta pagina demuestra la funcionalidad de <strong>selectores de fecha y exportacion a PDF/Excel con filtros</strong>.
           </p>
           <ul className="list-disc list-inside text-sm text-blue-700 dark:text-blue-300 mt-2 space-y-1">
+            <li><strong>Feature #92:</strong> Los selectores de fecha tienen valores predeterminados sensibles:
+              <ul className="list-disc list-inside ml-4 mt-1">
+                <li>&quot;Desde&quot; se establece automaticamente a hace 30 dias</li>
+                <li>&quot;Hasta&quot; se establece automaticamente a hoy</li>
+                <li>No se permiten fechas futuras ni rangos invalidos</li>
+              </ul>
+            </li>
             <li>Haz clic en &quot;Exportar a PDF&quot; para descargar el reporte en formato PDF</li>
             <li>Haz clic en &quot;Exportar a Excel&quot; para descargar el reporte en formato Excel</li>
             <li>Usa el filtro de categoria para ver solo datos de una categoria especifica</li>

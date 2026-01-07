@@ -22,6 +22,8 @@ public class TicketDto
     public DateTime? FechaResolucion { get; set; }
     public int ComentariosCount { get; set; }
     public int ArchivosCount { get; set; }
+    // Concurrency token for optimistic locking (Base64 encoded)
+    public string? RowVersion { get; set; }
 }
 
 public class CreateTicketDto
@@ -50,6 +52,9 @@ public class UpdateTicketDto
     public int? CategoriaId { get; set; }
 
     public string? Prioridad { get; set; }
+
+    // Concurrency token for optimistic locking (Base64 encoded)
+    public string? RowVersion { get; set; }
 }
 
 public class AssignTicketDto

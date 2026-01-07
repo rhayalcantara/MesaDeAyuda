@@ -294,7 +294,8 @@ public class TicketsController : ControllerBase
             FechaPrimeraRespuesta = ticket.FechaPrimeraRespuesta,
             FechaResolucion = ticket.FechaResolucion,
             ComentariosCount = ticket.Comentarios.Count,
-            ArchivosCount = ticket.Archivos.Count
+            ArchivosCount = ticket.Archivos.Count,
+            RowVersion = ticket.RowVersion != null ? Convert.ToBase64String(ticket.RowVersion) : null
         });
     }
 
@@ -376,6 +377,26 @@ public class TicketsController : ControllerBase
             return Forbid();
         }
 
+        // Check for concurrency conflict using RowVersion
+        if (!string.IsNullOrEmpty(dto.RowVersion))
+        {
+            try
+            {
+                var clientRowVersion = Convert.FromBase64String(dto.RowVersion);
+                if (ticket.RowVersion != null && !ticket.RowVersion.SequenceEqual(clientRowVersion))
+                {
+                    return Conflict(new {
+                        message = "Este ticket ha sido modificado por otro usuario. Por favor, recargue la pagina e intente de nuevo.",
+                        code = "CONCURRENCY_CONFLICT"
+                    });
+                }
+            }
+            catch (FormatException)
+            {
+                // Invalid Base64 string, ignore and proceed
+            }
+        }
+
         if (!string.IsNullOrEmpty(dto.Titulo))
             ticket.Titulo = dto.Titulo;
 
@@ -403,9 +424,24 @@ public class TicketsController : ControllerBase
         }
 
         ticket.FechaActualizacion = DateTime.UtcNow;
-        await _context.SaveChangesAsync();
 
-        return Ok(new { message = "Ticket actualizado exitosamente" });
+        try
+        {
+            await _context.SaveChangesAsync();
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            return Conflict(new {
+                message = "Este ticket ha sido modificado por otro usuario. Por favor, recargue la pagina e intente de nuevo.",
+                code = "CONCURRENCY_CONFLICT"
+            });
+        }
+
+        // Return updated ticket with new RowVersion
+        return Ok(new {
+            message = "Ticket actualizado exitosamente",
+            rowVersion = ticket.RowVersion != null ? Convert.ToBase64String(ticket.RowVersion) : null
+        });
     }
 
     [HttpPut("{id}/asignar")]
