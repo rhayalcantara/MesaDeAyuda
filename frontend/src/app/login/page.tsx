@@ -27,7 +27,18 @@ export default function LoginPage() {
       // Pass the redirect URL if present (from ?redirect= query param)
       await login({ email, password }, redirectUrl || undefined);
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Error al iniciar sesion');
+      // Handle different types of errors
+      if (err.code === 'ERR_NETWORK' || err.message === 'Network Error') {
+        setError('No se pudo conectar al servidor. Por favor, verifique su conexion a internet e intente nuevamente.');
+      } else if (err.response?.status === 401) {
+        setError('Credenciales incorrectas. Por favor, verifique su correo y contrasena.');
+      } else if (err.response?.status === 403) {
+        setError('Su cuenta ha sido desactivada. Contacte al administrador.');
+      } else if (err.response?.status >= 500) {
+        setError('Error en el servidor. Por favor, intente nuevamente mas tarde.');
+      } else {
+        setError(err.response?.data?.message || 'Error al iniciar sesion. Por favor, intente nuevamente.');
+      }
     } finally {
       setIsLoading(false);
     }
