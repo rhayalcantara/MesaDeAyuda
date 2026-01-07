@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/context/ThemeContext';
 import { MoonIcon, SunIcon } from '@heroicons/react/24/outline';
@@ -14,6 +15,8 @@ export default function LoginPage() {
 
   const { login } = useAuth();
   const { theme, toggleTheme } = useTheme();
+  const searchParams = useSearchParams();
+  const redirectUrl = searchParams.get('redirect');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -21,7 +24,8 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      await login({ email, password });
+      // Pass the redirect URL if present (from ?redirect= query param)
+      await login({ email, password }, redirectUrl || undefined);
     } catch (err: any) {
       setError(err.response?.data?.message || 'Error al iniciar sesion');
     } finally {

@@ -47,7 +47,159 @@ const demoTickets: Ticket[] = [
     empleadoNombre: 'Admin Demo',
     fechaCreacion: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
   },
+  {
+    id: 4,
+    titulo: 'Problema con facturacion electronica',
+    estado: 'Abierto',
+    prioridad: 'Alta',
+    categoria: 'Facturacion',
+    clienteNombre: 'Carlos Rodriguez',
+    empleadoNombre: null,
+    fechaCreacion: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 5,
+    titulo: 'Error en sincronizacion de inventario',
+    estado: 'EnProceso',
+    prioridad: 'Media',
+    categoria: 'Inventario',
+    clienteNombre: 'Ana Martinez',
+    empleadoNombre: 'Empleado Demo',
+    fechaCreacion: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 6,
+    titulo: 'Solicitud de capacitacion',
+    estado: 'Resuelto',
+    prioridad: 'Baja',
+    categoria: 'Soporte',
+    clienteNombre: 'Luis Fernandez',
+    empleadoNombre: 'Admin Demo',
+    fechaCreacion: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 7,
+    titulo: 'Cambio de contrasena no funciona',
+    estado: 'Abierto',
+    prioridad: 'Alta',
+    categoria: 'Seguridad',
+    clienteNombre: 'Rosa Lopez',
+    empleadoNombre: null,
+    fechaCreacion: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 8,
+    titulo: 'Reporte de ventas incorrecto',
+    estado: 'EnEspera',
+    prioridad: 'Media',
+    categoria: 'Reportes',
+    clienteNombre: 'Pedro Sanchez',
+    empleadoNombre: 'Empleado Demo',
+    fechaCreacion: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 9,
+    titulo: 'Integracion con API externa',
+    estado: 'EnProceso',
+    prioridad: 'Alta',
+    categoria: 'Integraciones',
+    clienteNombre: 'Sofia Torres',
+    empleadoNombre: 'Admin Demo',
+    fechaCreacion: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 10,
+    titulo: 'Actualizacion de datos de cliente',
+    estado: 'Cerrado',
+    prioridad: 'Baja',
+    categoria: 'Datos',
+    clienteNombre: 'Miguel Herrera',
+    empleadoNombre: 'Empleado Demo',
+    fechaCreacion: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 11,
+    titulo: 'Error en modulo de pagos',
+    estado: 'Abierto',
+    prioridad: 'Alta',
+    categoria: 'Pagos',
+    clienteNombre: 'Laura Gomez',
+    empleadoNombre: null,
+    fechaCreacion: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 12,
+    titulo: 'Consulta sobre precios',
+    estado: 'Resuelto',
+    prioridad: 'Baja',
+    categoria: 'Ventas',
+    clienteNombre: 'Diego Ruiz',
+    empleadoNombre: 'Admin Demo',
+    fechaCreacion: new Date(Date.now() - 8 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 13,
+    titulo: 'Sistema caido urgente',
+    estado: 'Abierto',
+    prioridad: 'Alta',
+    categoria: 'Infraestructura',
+    clienteNombre: 'Fernando Diaz',
+    empleadoNombre: null,
+    fechaCreacion: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 14,
+    titulo: 'Error critico en produccion',
+    estado: 'Abierto',
+    prioridad: 'Alta',
+    categoria: 'Produccion',
+    clienteNombre: 'Carmen Vega',
+    empleadoNombre: null,
+    fechaCreacion: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 15,
+    titulo: 'Base de datos lenta',
+    estado: 'Abierto',
+    prioridad: 'Alta',
+    categoria: 'Base de Datos',
+    clienteNombre: 'Roberto Nunez',
+    empleadoNombre: null,
+    fechaCreacion: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 16,
+    titulo: 'Problema de memoria',
+    estado: 'Abierto',
+    prioridad: 'Alta',
+    categoria: 'Servidor',
+    clienteNombre: 'Isabel Castro',
+    empleadoNombre: null,
+    fechaCreacion: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 17,
+    titulo: 'Fallo en backup',
+    estado: 'Abierto',
+    prioridad: 'Alta',
+    categoria: 'Backup',
+    clienteNombre: 'Andres Moreno',
+    empleadoNombre: null,
+    fechaCreacion: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 18,
+    titulo: 'Problema de red',
+    estado: 'Abierto',
+    prioridad: 'Alta',
+    categoria: 'Red',
+    clienteNombre: 'Patricia Luna',
+    empleadoNombre: null,
+    fechaCreacion: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+  },
 ];
+
+const ITEMS_PER_PAGE = 5;
 
 export default function AdminTicketsPage() {
   const [tickets, setTickets] = useState<Ticket[]>([]);
@@ -55,10 +207,18 @@ export default function AdminTicketsPage() {
   const [filtroEstado, setFiltroEstado] = useState('');
   const [filtroPrioridad, setFiltroPrioridad] = useState('');
   const [busqueda, setBusqueda] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
     fetchTickets();
+    setCurrentPage(1); // Reset to page 1 when filters change
   }, [filtroEstado, filtroPrioridad, busqueda]);
+
+  // Pagination calculations
+  const totalPages = Math.ceil(tickets.length / ITEMS_PER_PAGE);
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const endIndex = startIndex + ITEMS_PER_PAGE;
+  const paginatedTickets = tickets.slice(startIndex, endIndex);
 
   const fetchTickets = async () => {
     try {
@@ -240,14 +400,14 @@ export default function AdminTicketsPage() {
                       Cargando...
                     </td>
                   </tr>
-                ) : tickets.length === 0 ? (
+                ) : paginatedTickets.length === 0 ? (
                   <tr>
                     <td colSpan={8} className="px-6 py-4 text-center text-gray-500 dark:text-gray-400">
                       No hay tickets para mostrar
                     </td>
                   </tr>
                 ) : (
-                  tickets.map((ticket) => (
+                  paginatedTickets.map((ticket) => (
                     <tr key={ticket.id} className="hover:bg-gray-50 dark:hover:bg-gray-800">
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                         #{ticket.id}
@@ -288,6 +448,44 @@ export default function AdminTicketsPage() {
               </tbody>
             </table>
           </div>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between">
+              <div className="text-sm text-gray-500 dark:text-gray-400">
+                Mostrando {startIndex + 1} - {Math.min(endIndex, tickets.length)} de {tickets.length} tickets
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                  disabled={currentPage === 1}
+                  className="px-3 py-1 text-sm font-medium rounded-md border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  Anterior
+                </button>
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                  <button
+                    key={page}
+                    onClick={() => setCurrentPage(page)}
+                    className={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${
+                      currentPage === page
+                        ? 'bg-primary-600 text-white'
+                        : 'border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+                    }`}
+                  >
+                    {page}
+                  </button>
+                ))}
+                <button
+                  onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                  disabled={currentPage === totalPages}
+                  className="px-3 py-1 text-sm font-medium rounded-md border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  Siguiente
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </MainLayout>

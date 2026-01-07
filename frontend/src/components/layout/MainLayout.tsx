@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import Header from './Header';
 import Sidebar from './Sidebar';
@@ -17,6 +17,7 @@ export default function MainLayout({ children, requiredRoles }: MainLayoutProps)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { user, isLoading } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
 
   // Close mobile menu on route change
   useEffect(() => {
@@ -25,9 +26,11 @@ export default function MainLayout({ children, requiredRoles }: MainLayoutProps)
 
   useEffect(() => {
     if (!isLoading && !user) {
-      router.push('/login');
+      // Preserve the intended destination in the redirect URL
+      const redirectUrl = `/login?redirect=${encodeURIComponent(pathname)}`;
+      router.push(redirectUrl);
     }
-  }, [user, isLoading, router]);
+  }, [user, isLoading, router, pathname]);
 
   useEffect(() => {
     if (!isLoading && user && requiredRoles && !requiredRoles.includes(user.rol)) {

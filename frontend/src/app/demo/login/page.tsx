@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useTheme } from '@/context/ThemeContext';
 
 // Demo login page to test role-based access control without backend
@@ -44,7 +44,27 @@ export default function DemoLoginPage() {
   const [selectedRole, setSelectedRole] = useState<'admin' | 'empleado' | 'cliente'>('cliente');
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectUrl = searchParams.get('redirect');
   const { theme, toggleTheme } = useTheme();
+
+  // Validate that redirect URL is appropriate for the user's role
+  const validateRedirectForRole = (url: string, role: string): boolean => {
+    // Admin can access anything
+    if (role === 'Admin') return true;
+
+    // Empleado can access empleado and some admin routes
+    if (role === 'Empleado') {
+      return url.startsWith('/empleado/') || url.startsWith('/admin/tickets');
+    }
+
+    // Cliente can only access cliente routes
+    if (role === 'Cliente') {
+      return url.startsWith('/cliente/');
+    }
+
+    return false;
+  };
 
   const handleDemoLogin = () => {
     setIsLoading(true);
@@ -61,6 +81,13 @@ export default function DemoLoginPage() {
     // Redirect based on role - use window.location to force full page reload
     // This ensures AuthContext picks up the new user
     setTimeout(() => {
+      // Check if we have a valid redirect URL for this role
+      if (redirectUrl && validateRedirectForRole(redirectUrl, user.rol)) {
+        window.location.href = redirectUrl;
+        return;
+      }
+
+      // Default redirect based on role
       switch (user.rol) {
         case 'Admin':
           window.location.href = '/admin/dashboard';

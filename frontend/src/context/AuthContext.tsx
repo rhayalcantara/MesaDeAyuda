@@ -9,7 +9,7 @@ import toast from 'react-hot-toast';
 interface AuthContextType {
   user: User | null;
   isLoading: boolean;
-  login: (credentials: LoginRequest) => Promise<void>;
+  login: (credentials: LoginRequest, redirectUrl?: string) => Promise<void>;
   logout: () => Promise<void>;
   updateUser: (user: User) => void;
 }
@@ -64,7 +64,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const login = async (credentials: LoginRequest) => {
+  const login = async (credentials: LoginRequest, redirectUrl?: string) => {
     try {
       const response = await api.post<LoginResponse>('/auth/login', credentials);
       const { token, user } = response.data;
@@ -78,7 +78,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      // Redirect based on role
+      // If a redirect URL was provided, use it (after verifying user has access)
+      if (redirectUrl) {
+        // Validate that the redirect URL is appropriate for the user's role
+        const isValidRedirect = validateRedirectForRole(redirectUrl, user.rol);
+        if (isValidRedirect) {
+          router.push(redirectUrl);
+          toast.success(`Bienvenido, ${user.nombre}`);
+          return;
+        }
+      }
+
+      // Default redirect based on role
       switch (user.rol) {
         case 'Admin':
           router.push('/admin/dashboard');
@@ -97,6 +108,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       toast.error(message);
       throw error;
     }
+  };
+
+  const validateRedirectForRole = (url: string, role: string): boolean => {
+    // Admin can access anything
+    if (role === 'Admin') return true;
+
+    // Empleado can access empleado and some admin routes
+    if (role === 'Empleado') {
+      return url.startsWith('/empleado/') || url.startsWith('/admin/tickets');
+    }
+
+    // Cliente can only access cliente routes
+    if (role === 'Cliente') {
+      return url.startsWith('/cliente/');
+    }
+
+    return false;
   };
 
   const logout = async () => {
