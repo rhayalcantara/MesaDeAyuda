@@ -150,21 +150,88 @@ export default function DemoTicketDetailPage() {
     return () => clearInterval(interval);
   }, []);
 
-  // Create demo ticket with actual timestamps
+  // Demo tickets data - matches the list in /demo/tickets
   const now = new Date();
-  const ticket: Ticket = {
-    id: Number(ticketId) || 1,
-    titulo: 'Error al generar reportes de ventas',
-    descripcion: 'Al intentar generar el reporte mensual de ventas, el sistema muestra un error "Timeout exceeded". Esto ocurre cuando selecciono más de 30 días de datos. El problema comenzó después de la última actualización del sistema.\n\nPasos para reproducir:\n1. Ir a Reportes > Ventas\n2. Seleccionar rango de fechas mayor a 30 días\n3. Hacer clic en "Generar Reporte"\n4. El sistema muestra error de timeout',
-    estado: 'EnProceso',
-    prioridad: 'Alta',
-    categoria: 'Sistema de Ventas',
-    fechaCreacion: new Date(now.getTime() - 3600000 * 24 * 2), // 2 days ago
-    fechaActualizacion: new Date(now.getTime() - 3600000 * 2), // 2 hours ago
-    fechaPrimeraRespuesta: new Date(now.getTime() - 3600000 * 24), // 1 day ago
-    cliente: 'Juan Perez',
-    empleadoAsignado: 'Maria Garcia',
+  const demoTickets: Record<number, Ticket> = {
+    1: {
+      id: 1,
+      titulo: 'Error al generar reportes de ventas',
+      descripcion: 'Al intentar generar el reporte mensual de ventas, el sistema muestra un error "Timeout exceeded". Esto ocurre cuando selecciono más de 30 días de datos. El problema comenzó después de la última actualización del sistema.\n\nPasos para reproducir:\n1. Ir a Reportes > Ventas\n2. Seleccionar rango de fechas mayor a 30 días\n3. Hacer clic en "Generar Reporte"\n4. El sistema muestra error de timeout',
+      estado: 'Abierto',
+      prioridad: 'Alta',
+      categoria: 'Sistema de Ventas',
+      fechaCreacion: new Date(now.getTime() - 3600000 * 24 * 2),
+      fechaActualizacion: new Date(now.getTime() - 3600000 * 2),
+      fechaPrimeraRespuesta: new Date(now.getTime() - 3600000 * 24),
+      cliente: 'Juan Perez',
+      empleadoAsignado: 'Maria Garcia',
+    },
+    2: {
+      id: 2,
+      titulo: 'Actualizacion de datos de inventario lenta',
+      descripcion: 'La sincronización del inventario está tardando más de 10 minutos cuando antes tardaba 2 minutos. El problema ocurre principalmente durante las horas pico (10am-12pm).\n\nSe nota especialmente cuando hay más de 500 productos para sincronizar.',
+      estado: 'EnProceso',
+      prioridad: 'Media',
+      categoria: 'Sistema de Inventario',
+      fechaCreacion: new Date(now.getTime() - 3600000 * 24 * 3),
+      fechaActualizacion: new Date(now.getTime() - 3600000 * 5),
+      fechaPrimeraRespuesta: new Date(now.getTime() - 3600000 * 48),
+      cliente: 'Maria Garcia',
+      empleadoAsignado: 'Carlos Lopez',
+    },
+    3: {
+      id: 3,
+      titulo: 'Solicitud de nuevo modulo de facturacion',
+      descripcion: 'Necesitamos un nuevo módulo de facturación electrónica que cumpla con los requisitos de la DGII. El módulo debe permitir:\n\n1. Generar NCF automáticamente\n2. Enviar facturas por correo\n3. Generar reportes mensuales de facturación',
+      estado: 'EnEspera',
+      prioridad: 'Baja',
+      categoria: 'Portal Web',
+      fechaCreacion: new Date(now.getTime() - 3600000 * 24 * 5),
+      fechaActualizacion: new Date(now.getTime() - 3600000 * 24),
+      cliente: 'Carlos Lopez',
+    },
+    4: {
+      id: 4,
+      titulo: 'Bug en la aplicacion movil al sincronizar',
+      descripcion: 'La aplicación móvil se cierra inesperadamente cuando intento sincronizar datos sin conexión a internet. El error ocurre en Android 12 y 13.',
+      estado: 'Resuelto',
+      prioridad: 'Alta',
+      categoria: 'Aplicacion Movil',
+      fechaCreacion: new Date(now.getTime() - 3600000 * 24 * 4),
+      fechaActualizacion: new Date(now.getTime() - 3600000 * 12),
+      fechaPrimeraRespuesta: new Date(now.getTime() - 3600000 * 72),
+      cliente: 'Ana Martinez',
+      empleadoAsignado: 'Maria Garcia',
+    },
+    5: {
+      id: 5,
+      titulo: 'Consulta sobre configuracion del sistema',
+      descripcion: 'Necesito ayuda para configurar las notificaciones por correo. No estoy seguro de cuáles opciones debo activar.',
+      estado: 'Cerrado',
+      prioridad: 'Baja',
+      categoria: 'Otro',
+      fechaCreacion: new Date(now.getTime() - 3600000 * 24 * 7),
+      fechaActualizacion: new Date(now.getTime() - 3600000 * 48),
+      fechaPrimeraRespuesta: new Date(now.getTime() - 3600000 * 24 * 6),
+      cliente: 'Pedro Sanchez',
+      empleadoAsignado: 'Carlos Lopez',
+    },
+    6: {
+      id: 6,
+      titulo: 'Este es un titulo extremadamente largo que deberia truncarse o ajustarse correctamente sin causar desbordamiento horizontal en la tabla de tickets',
+      descripcion: 'Este ticket es para probar el manejo de texto largo en la interfaz.',
+      estado: 'Abierto',
+      prioridad: 'Media',
+      categoria: 'Sistema de Pruebas de Texto Largo',
+      fechaCreacion: new Date(now.getTime() - 3600000 * 24),
+      fechaActualizacion: new Date(now.getTime() - 3600000),
+      cliente: 'Usuario Con Nombre Muy Largo Para Probar Truncamiento',
+    },
   };
+
+  // Get ticket by ID or default to ticket 1
+  const numericId = Number(ticketId) || 1;
+  const ticket: Ticket = demoTickets[numericId] || demoTickets[1];
 
   // Demo comments with timestamps
   const comments: Comment[] = [
