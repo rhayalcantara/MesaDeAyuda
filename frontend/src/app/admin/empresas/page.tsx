@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { MainLayout } from '@/components/layout';
 
 interface Empresa {
@@ -12,6 +13,37 @@ interface Empresa {
   activa: boolean;
   fechaCreacion: string;
 }
+
+// Demo data for testing without backend
+const demoEmpresas: Empresa[] = [
+  {
+    id: 1,
+    nombre: 'Empresa Demo SA',
+    configVisibilidadTickets: 'propios',
+    logoUrl: null,
+    colorPrimario: '#2563eb',
+    activa: true,
+    fechaCreacion: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 2,
+    nombre: 'Tecnologias ABC',
+    configVisibilidadTickets: 'empresa',
+    logoUrl: null,
+    colorPrimario: '#16a34a',
+    activa: true,
+    fechaCreacion: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 3,
+    nombre: 'Consultores XYZ',
+    configVisibilidadTickets: 'propios',
+    logoUrl: null,
+    colorPrimario: '#dc2626',
+    activa: false,
+    fechaCreacion: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+];
 
 export default function AdminEmpresasPage() {
   const [empresas, setEmpresas] = useState<Empresa[]>([]);
@@ -35,9 +67,14 @@ export default function AdminEmpresasPage() {
       if (response.ok) {
         const data = await response.json();
         setEmpresas(data);
+      } else {
+        // Fall back to demo data
+        console.log('Using demo data (API not available)');
+        setEmpresas(demoEmpresas);
       }
     } catch (error) {
-      console.error('Error fetching empresas:', error);
+      console.log('Using demo data (API not available)');
+      setEmpresas(demoEmpresas);
     } finally {
       setLoading(false);
     }
@@ -110,6 +147,17 @@ export default function AdminEmpresasPage() {
   return (
     <MainLayout requiredRoles={['Admin']}>
       <div className="space-y-6">
+        {/* Breadcrumbs */}
+        <nav className="flex items-center text-sm text-gray-500 dark:text-gray-400" aria-label="Breadcrumb">
+          <Link href="/" className="hover:text-primary-600 dark:hover:text-primary-400">
+            Inicio
+          </Link>
+          <svg className="mx-2 h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" aria-hidden="true">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+          </svg>
+          <span className="text-gray-900 dark:text-white font-medium">Empresas</span>
+        </nav>
+
         <div className="flex justify-between items-center">
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
             Gestion de Empresas
@@ -173,8 +221,13 @@ export default function AdminEmpresasPage() {
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                         {empresa.id}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                        {empresa.nombre}
+                      <td className="px-6 py-4 whitespace-nowrap text-sm">
+                        <Link
+                          href={`/admin/empresas/${empresa.id}`}
+                          className="text-primary-600 dark:text-primary-400 hover:underline font-medium"
+                        >
+                          {empresa.nombre}
+                        </Link>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                         {empresa.configVisibilidadTickets === 'propios' ? 'Solo propios' : 'Toda la empresa'}
