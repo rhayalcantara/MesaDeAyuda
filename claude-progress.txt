@@ -844,3 +844,19 @@ This session focused on verifying features through code review due to browser au
 1. Continue with frontend-testable features
 2. Look for more Error Handling or UI features
 3. When backend becomes available, test remaining features
+
+## REMAINING FEATURES (require backend)
+Most remaining features are in these categories that require backend:
+- UI-Backend Integration (database operations)
+- State & Persistence (data persistence)
+- Real Data Verification (CRUD operations)
+- Workflow Completeness (ticket lifecycle)
+- Security & Access Control (authentication)
+
+To continue progress:
+1. Enable `dotnet` command in sandbox
+2. Run `dotnet run --project /path/to/backend/MDAyuda.API.csproj`
+3. Test with seeded users:
+   - Admin: admin@mdayuda.com / Admin123!
+   - Empleado: empleado@mdayuda.com / Empleado123!
+   - Cliente: cliente@demo.com / Cliente123!
