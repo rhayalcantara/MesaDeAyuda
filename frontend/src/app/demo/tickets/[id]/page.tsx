@@ -36,6 +36,7 @@ interface Archivo {
   tipoMime: string;
   fechaSubida: Date;
   subidoPor: string;
+  previewUrl?: string; // For image previews
 }
 
 // Helper function to format date in local timezone
@@ -213,6 +214,7 @@ export default function DemoTicketDetailPage() {
   const [currentTime, setCurrentTime] = useState<Date>(new Date());
   const [timezone, setTimezone] = useState<string>('');
   const [activeTab, setActiveTab] = useState<'comentarios' | 'archivos'>('comentarios');
+  const [previewImage, setPreviewImage] = useState<Archivo | null>(null);
 
   useEffect(() => {
     // Get the user's timezone
@@ -335,6 +337,7 @@ export default function DemoTicketDetailPage() {
   ];
 
   // Demo files for testing tab navigation
+  // Using placeholder images for demo previews
   const archivos: Archivo[] = [
     {
       id: 1,
@@ -343,6 +346,7 @@ export default function DemoTicketDetailPage() {
       tipoMime: 'image/png',
       fechaSubida: new Date(now.getTime() - 3600000 * 48), // 2 days ago
       subidoPor: 'Juan Perez',
+      previewUrl: 'https://placehold.co/800x600/e74c3c/ffffff?text=Error+Screenshot',
     },
     {
       id: 2,
@@ -359,6 +363,15 @@ export default function DemoTicketDetailPage() {
       tipoMime: 'application/pdf',
       fechaSubida: new Date(now.getTime() - 3600000 * 2), // 2 hours ago
       subidoPor: 'Juan Perez',
+    },
+    {
+      id: 4,
+      nombreOriginal: 'diagrama_flujo.jpg',
+      tamanio: 512000, // ~500KB
+      tipoMime: 'image/jpeg',
+      fechaSubida: new Date(now.getTime() - 3600000 * 6), // 6 hours ago
+      subidoPor: 'Maria Garcia',
+      previewUrl: 'https://placehold.co/800x600/3498db/ffffff?text=Flow+Diagram',
     },
   ];
 
@@ -593,19 +606,44 @@ export default function DemoTicketDetailPage() {
                         key={archivo.id}
                         className="flex items-center gap-4 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                       >
-                        <div className="flex-shrink-0" aria-hidden="true">
-                          {archivo.tipoMime.startsWith('image/') ? (
-                            <svg className="h-8 w-8 text-blue-500" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
-                            </svg>
+                        {/* Thumbnail/Icon - clickable for images */}
+                        <div className="flex-shrink-0">
+                          {archivo.tipoMime.startsWith('image/') && archivo.previewUrl ? (
+                            <button
+                              onClick={() => setPreviewImage(archivo)}
+                              className="relative group cursor-pointer"
+                              title="Ver imagen"
+                              aria-label={`Ver vista previa de ${archivo.nombreOriginal}`}
+                            >
+                              <img
+                                src={archivo.previewUrl}
+                                alt={`Miniatura de ${archivo.nombreOriginal}`}
+                                className="h-16 w-16 object-cover rounded-lg border border-gray-200 dark:border-gray-600"
+                              />
+                              <div className="absolute inset-0 bg-black/40 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607zM10.5 7.5v6m3-3h-6" />
+                                </svg>
+                              </div>
+                            </button>
+                          ) : archivo.tipoMime.startsWith('image/') ? (
+                            <div className="h-16 w-16 bg-blue-100 dark:bg-blue-900/50 rounded-lg flex items-center justify-center">
+                              <svg className="h-8 w-8 text-blue-500" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
+                              </svg>
+                            </div>
                           ) : archivo.tipoMime === 'application/pdf' ? (
-                            <svg className="h-8 w-8 text-red-500" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
-                            </svg>
+                            <div className="h-16 w-16 bg-red-100 dark:bg-red-900/50 rounded-lg flex items-center justify-center">
+                              <svg className="h-8 w-8 text-red-500" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+                              </svg>
+                            </div>
                           ) : (
-                            <svg className="h-8 w-8 text-gray-500" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
-                            </svg>
+                            <div className="h-16 w-16 bg-gray-100 dark:bg-gray-600 rounded-lg flex items-center justify-center">
+                              <svg className="h-8 w-8 text-gray-500 dark:text-gray-400" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+                              </svg>
+                            </div>
                           )}
                         </div>
                         <div className="flex-1 min-w-0">
@@ -615,6 +653,14 @@ export default function DemoTicketDetailPage() {
                           <p className="text-sm text-gray-500 dark:text-gray-400">
                             {formatFileSize(archivo.tamanio)} • Subido por {archivo.subidoPor} • {formatLocalDate(archivo.fechaSubida)}
                           </p>
+                          {archivo.tipoMime.startsWith('image/') && archivo.previewUrl && (
+                            <button
+                              onClick={() => setPreviewImage(archivo)}
+                              className="text-sm text-primary-600 dark:text-primary-400 hover:underline mt-1"
+                            >
+                              Ver imagen
+                            </button>
+                          )}
                         </div>
                         <button
                           onClick={() => downloadDemoFile(archivo)}
@@ -648,6 +694,58 @@ export default function DemoTicketDetailPage() {
           </div>
         </div>
       </div>
+
+      {/* Image Preview Modal */}
+      {previewImage && previewImage.previewUrl && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
+          onClick={() => setPreviewImage(null)}
+          role="dialog"
+          aria-modal="true"
+          aria-label={`Vista previa de ${previewImage.nombreOriginal}`}
+        >
+          <div className="relative max-w-4xl max-h-full">
+            {/* Close button */}
+            <button
+              onClick={() => setPreviewImage(null)}
+              className="absolute -top-12 right-0 text-white hover:text-gray-300 transition-colors"
+              aria-label="Cerrar vista previa"
+            >
+              <svg className="h-8 w-8" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+
+            {/* Image */}
+            <img
+              src={previewImage.previewUrl}
+              alt={previewImage.nombreOriginal}
+              className="max-w-full max-h-[80vh] object-contain rounded-lg"
+              onClick={(e) => e.stopPropagation()}
+            />
+
+            {/* Image info */}
+            <div className="mt-4 text-center text-white">
+              <p className="font-medium">{previewImage.nombreOriginal}</p>
+              <p className="text-sm text-gray-300">
+                {formatFileSize(previewImage.tamanio)} • Subido por {previewImage.subidoPor}
+              </p>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  downloadDemoFile(previewImage);
+                }}
+                className="mt-3 inline-flex items-center gap-2 px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors"
+              >
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                </svg>
+                Descargar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
