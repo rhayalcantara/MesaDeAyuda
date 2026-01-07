@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 
@@ -215,6 +215,60 @@ export default function DemoTicketDetailPage() {
   const [timezone, setTimezone] = useState<string>('');
   const [activeTab, setActiveTab] = useState<'comentarios' | 'archivos'>('comentarios');
   const [previewImage, setPreviewImage] = useState<Archivo | null>(null);
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
+  const [uploadFileName, setUploadFileName] = useState<string>('');
+  const [uploadedFiles, setUploadedFiles] = useState<Archivo[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Simulated file upload with progress indicator
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setUploadFileName(file.name);
+    setUploadProgress(0);
+
+    // Simulate upload progress with intervals
+    const totalSteps = 20;
+    let currentStep = 0;
+
+    const progressInterval = setInterval(() => {
+      currentStep++;
+      const progress = Math.min((currentStep / totalSteps) * 100, 100);
+      setUploadProgress(progress);
+
+      if (currentStep >= totalSteps) {
+        clearInterval(progressInterval);
+
+        // Create a new file entry after "upload" completes
+        const newFile: Archivo = {
+          id: Date.now(),
+          nombreOriginal: file.name,
+          tamanio: file.size,
+          tipoMime: file.type || 'application/octet-stream',
+          fechaSubida: new Date(),
+          subidoPor: 'Demo User',
+          previewUrl: file.type.startsWith('image/')
+            ? URL.createObjectURL(file)
+            : undefined,
+        };
+
+        // Add to uploaded files
+        setUploadedFiles(prev => [...prev, newFile]);
+
+        // Reset progress after a brief delay to show 100%
+        setTimeout(() => {
+          setUploadProgress(null);
+          setUploadFileName('');
+        }, 500);
+      }
+    }, 150); // 150ms * 20 steps = 3 seconds total
+
+    // Reset file input so same file can be uploaded again
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
 
   useEffect(() => {
     // Get the user's timezone
@@ -595,13 +649,16 @@ export default function DemoTicketDetailPage() {
                 id="tabpanel-archivos"
                 aria-labelledby="tab-archivos"
               >
-                {archivos.length === 0 ? (
-                  <p className="text-gray-500 dark:text-gray-400 text-center py-8">
-                    No hay archivos adjuntos.
-                  </p>
-                ) : (
-                  <div className="space-y-3">
-                    {archivos.map((archivo) => (
+                {/* Combine demo files with uploaded files */}
+                {(() => {
+                  const allFiles = [...archivos, ...uploadedFiles];
+                  return allFiles.length === 0 ? (
+                    <p className="text-gray-500 dark:text-gray-400 text-center py-8">
+                      No hay archivos adjuntos.
+                    </p>
+                  ) : (
+                    <div className="space-y-3">
+                      {allFiles.map((archivo) => (
                       <div
                         key={archivo.id}
                         className="flex items-center gap-4 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
@@ -673,20 +730,58 @@ export default function DemoTicketDetailPage() {
                           </svg>
                         </button>
                       </div>
-                    ))}
+                      ))}
+                    </div>
+                  );
+                })()}
+
+                {/* Upload progress indicator */}
+                {uploadProgress !== null && (
+                  <div className="mb-4 p-4 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 rounded-lg">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-medium text-blue-700 dark:text-blue-300">
+                        Subiendo: {uploadFileName}
+                      </span>
+                      <span className="text-sm font-bold text-blue-700 dark:text-blue-300">
+                        {Math.round(uploadProgress)}%
+                      </span>
+                    </div>
+                    <div className="w-full bg-blue-200 dark:bg-blue-800 rounded-full h-3">
+                      <div
+                        className="bg-blue-600 dark:bg-blue-500 h-3 rounded-full transition-all duration-150"
+                        style={{ width: `${uploadProgress}%` }}
+                        role="progressbar"
+                        aria-valuenow={Math.round(uploadProgress)}
+                        aria-valuemin={0}
+                        aria-valuemax={100}
+                        aria-label={`Progreso de subida: ${Math.round(uploadProgress)}%`}
+                      />
+                    </div>
+                    <p className="mt-2 text-xs text-blue-600 dark:text-blue-400">
+                      {uploadProgress < 100 ? 'Subiendo archivo...' : '¡Completado!'}
+                    </p>
                   </div>
                 )}
 
-                {/* Upload button */}
+                {/* Upload button and hidden input */}
                 <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleFileUpload}
+                    className="hidden"
+                    aria-label="Seleccionar archivo para subir"
+                  />
                   <button
                     type="button"
-                    className="flex items-center gap-2 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-medium rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploadProgress !== null}
+                    className="flex items-center gap-2 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-medium rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
                     </svg>
-                    Subir archivo
+                    {uploadProgress !== null ? 'Subiendo...' : 'Subir archivo'}
                   </button>
                 </div>
               </div>
