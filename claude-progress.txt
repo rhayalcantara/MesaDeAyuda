@@ -1601,8 +1601,25 @@ To test the remaining 44 features, the backend must be running:
    - Empleado: empleado@mdayuda.com / Empleado123!
    - Cliente: cliente@demo.com / Cliente123!
 
+### ADDITIONAL REGRESSION TESTS (All Passing)
+
+4. **Feature #48: Invalid form input shows field errors** ✅
+   - Navigated to /demo/nuevo-ticket
+   - Clicked "Crear Ticket" without filling form
+   - Errors displayed: "El titulo es requerido", "Debe seleccionar una categoria", "La descripcion es requerida"
+   - Each error has role="alert" for accessibility
+   - Fields have red borders when invalid
+
+5. **Feature #72: Unsaved changes warning on form navigation** ✅
+   - Typed text in title field
+   - Clicked "Cancelar" button
+   - Modal appeared: "Cambios sin guardar"
+   - Message explained data would be lost
+   - "Seguir editando" and "Descartar cambios" buttons present
+   - Modal has proper overlay background
+
 ## SESSION OUTPUT
-- All 3 regression tests passed
+- All 5 regression tests passed
 - Frontend server started successfully
 - No new code changes required
 - Codebase remains in clean, working state
