@@ -2128,3 +2128,82 @@ To test the remaining 39 features, the backend must be running:
 - No new code changes required
 - Codebase remains in clean, working state
 - 3 features skipped (backend required)
+
+---
+
+# Session 25: Coding Agent
+# Date: 2026-01-07
+
+## SESSION SUMMARY
+
+This session focused on regression testing and documenting the ongoing blocker.
+
+### SERVERS STATUS
+- Frontend: Started and running at http://localhost:3000 ✅
+- Backend: NOT running (`dotnet` command blocked in sandbox)
+- Port 5000: Used by macOS ControlCenter (AirTunes)
+
+### REGRESSION TESTS RAN (All Passing)
+
+1. **Feature #51: Loading states during async operations** ✅
+   - Navigated to /demo/nuevo-ticket
+   - Filled form with valid test data
+   - Clicked "Crear Ticket" button
+   - Button showed "Creando ticket..." with spinner (disabled)
+   - Success message appeared: "Ticket creado exitosamente!"
+   - Form reset after completion
+
+2. **Feature #15: Cancel button on forms returns to previous page** ✅
+   - Typed text in form to trigger unsaved changes detection
+   - Clicked Cancel button
+   - Unsaved changes warning dialog appeared with options
+   - Clicked "Descartar cambios"
+   - Successfully navigated to previous page (/demo/cliente-empty)
+
+3. **Feature #75: Bookmark returns to correct page with auth** ✅
+   - Navigated to protected route /admin/tickets/123
+   - Correctly redirected to login page
+   - URL preserved in query param: ?redirect=%2Fadmin%2Ftickets%2F123
+   - User would be redirected to bookmarked page after login
+
+### FEATURES ATTEMPTED (All Backend-Required)
+- Feature #28: Empresa dropdown populated from database - SKIPPED
+- Feature #29: Filter results match actual created data - SKIPPED
+- Feature #30: Timestamps are real and accurate - (next in queue, backend required)
+
+All remaining ~39 features require backend functionality (login, database operations).
+
+### CURRENT BLOCKER (UNCHANGED)
+- `dotnet` command is blocked in sandbox environment
+- Cannot run backend server
+- All remaining features require backend/database:
+  - Real Data Verification features
+  - Data Cleanup & Cascade features
+  - Concurrency & Race Conditions features
+  - Export/Import features
+  - Security & Access Control features
+
+## FEATURE STATS
+- Total Features: 157
+- Passing: 118
+- In Progress: 0
+- Percentage Complete: 75.2%
+
+## WHAT'S NEEDED TO CONTINUE
+To test the remaining ~39 features, the backend must be running:
+
+1. Enable `dotnet` command in sandbox
+2. Kill AirTunes on port 5000 or use different port (5001)
+3. Run: `dotnet run --project /Users/rhayalcantara/MesaDeAyuda/MesaDeAyuda/backend/MDAyuda.API.csproj --urls "http://localhost:5001"`
+4. Update frontend API URL if needed (currently http://localhost:5000)
+5. Test with seeded users:
+   - Admin: admin@mdayuda.com / Admin123!
+   - Empleado: empleado@mdayuda.com / Empleado123!
+   - Cliente: cliente@demo.com / Cliente123!
+
+## SESSION OUTPUT
+- All 3 regression tests passed
+- Frontend server started successfully
+- No new code changes required
+- Codebase remains in clean, working state
+- 2 features skipped (backend required)
