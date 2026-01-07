@@ -27,6 +27,11 @@ interface Comment {
   rol: string;
   texto: string;
   fecha: Date;
+  archivo?: {
+    nombreOriginal: string;
+    tamanio: number;
+    tipoMime: string;
+  };
 }
 
 interface Archivo {
@@ -221,6 +226,14 @@ export default function DemoTicketDetailPage() {
   const [uploadError, setUploadError] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Comment form state
+  const [newComment, setNewComment] = useState('');
+  const [commentFile, setCommentFile] = useState<File | null>(null);
+  const [commentFileError, setCommentFileError] = useState('');
+  const [isSubmittingComment, setIsSubmittingComment] = useState(false);
+  const [submittedComments, setSubmittedComments] = useState<Comment[]>([]);
+  const commentFileInputRef = useRef<HTMLInputElement>(null);
+
   // Max file size: 10MB
   const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB in bytes
 
@@ -318,6 +331,72 @@ export default function DemoTicketDetailPage() {
     // Reset file input so same file can be uploaded again
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
+    }
+  };
+
+  // Handle comment file selection
+  const handleCommentFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setCommentFileError('');
+
+    // Check file type by extension
+    const extension = getFileExtension(file.name);
+    const isValidExtension = ALLOWED_EXTENSIONS.includes(extension);
+
+    if (!isValidExtension) {
+      setCommentFileError(`El tipo de archivo ".${extension}" no esta permitido.`);
+      if (commentFileInputRef.current) {
+        commentFileInputRef.current.value = '';
+      }
+      return;
+    }
+
+    // Check file size
+    if (file.size > MAX_FILE_SIZE) {
+      setCommentFileError(`El archivo excede el limite de 10MB (${formatFileSize(file.size)}).`);
+      if (commentFileInputRef.current) {
+        commentFileInputRef.current.value = '';
+      }
+      return;
+    }
+
+    setCommentFile(file);
+  };
+
+  // Handle comment submission with optional file
+  const handleSubmitComment = async () => {
+    if (!newComment.trim()) {
+      return;
+    }
+
+    setIsSubmittingComment(true);
+
+    // Simulate API call delay
+    await new Promise(resolve => setTimeout(resolve, 1500));
+
+    // Create new comment
+    const newCommentObj: Comment = {
+      id: Date.now(),
+      usuario: 'Demo User',
+      rol: 'Empleado',
+      texto: newComment,
+      fecha: new Date(),
+      archivo: commentFile ? {
+        nombreOriginal: commentFile.name,
+        tamanio: commentFile.size,
+        tipoMime: commentFile.type || 'application/octet-stream',
+      } : undefined,
+    };
+
+    setSubmittedComments(prev => [...prev, newCommentObj]);
+    setNewComment('');
+    setCommentFile(null);
+    setIsSubmittingComment(false);
+
+    if (commentFileInputRef.current) {
+      commentFileInputRef.current.value = '';
     }
   };
 
@@ -644,7 +723,8 @@ export default function DemoTicketDetailPage() {
                 aria-labelledby="tab-comentarios"
               >
                 <div className="space-y-4">
-                  {comments.map((comment) => (
+                  {/* Combine demo comments with submitted comments */}
+                  {[...comments, ...submittedComments].map((comment) => (
                     <div key={comment.id} className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-2">
@@ -666,11 +746,33 @@ export default function DemoTicketDetailPage() {
                       <p className="text-gray-700 dark:text-gray-300">
                         {comment.texto}
                       </p>
+                      {/* Show attached file if exists */}
+                      {comment.archivo && (
+                        <div className="mt-3 flex items-center gap-2 p-2 bg-white dark:bg-gray-600 rounded border border-gray-200 dark:border-gray-500">
+                          <svg className="h-5 w-5 text-gray-500 dark:text-gray-400" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" aria-hidden="true">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M18.375 12.739l-7.693 7.693a4.5 4.5 0 01-6.364-6.364l10.94-10.94A3 3 0 1119.5 7.372L8.552 18.32m.009-.01l-.01.01m5.699-9.941l-7.81 7.81a1.5 1.5 0 002.112 2.13" />
+                          </svg>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                              {comment.archivo.nombreOriginal}
+                            </p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">
+                              {formatFileSize(comment.archivo.tamanio)}
+                            </p>
+                          </div>
+                          <span className="text-xs text-green-600 dark:text-green-400 flex items-center gap-1">
+                            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                            </svg>
+                            Adjunto
+                          </span>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
 
-                {/* Comment form placeholder */}
+                {/* Comment form with file attachment */}
                 <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
                   <label htmlFor="new-comment" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Agregar comentario
@@ -678,15 +780,95 @@ export default function DemoTicketDetailPage() {
                   <textarea
                     id="new-comment"
                     rows={3}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                    value={newComment}
+                    onChange={(e) => setNewComment(e.target.value)}
+                    disabled={isSubmittingComment}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-primary-500 disabled:opacity-50"
                     placeholder="Escribe tu comentario..."
                   />
-                  <div className="mt-2 flex justify-end">
+
+                  {/* File attachment section */}
+                  <div className="mt-3">
+                    <input
+                      type="file"
+                      ref={commentFileInputRef}
+                      onChange={handleCommentFileSelect}
+                      className="hidden"
+                      aria-label="Adjuntar archivo al comentario"
+                    />
+
+                    {/* Selected file display */}
+                    {commentFile && (
+                      <div className="flex items-center gap-2 p-2 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 rounded-lg mb-2">
+                        <svg className="h-5 w-5 text-blue-500" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" aria-hidden="true">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M18.375 12.739l-7.693 7.693a4.5 4.5 0 01-6.364-6.364l10.94-10.94A3 3 0 1119.5 7.372L8.552 18.32m.009-.01l-.01.01m5.699-9.941l-7.81 7.81a1.5 1.5 0 002.112 2.13" />
+                        </svg>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-blue-800 dark:text-blue-200 truncate">
+                            {commentFile.name}
+                          </p>
+                          <p className="text-xs text-blue-600 dark:text-blue-400">
+                            {formatFileSize(commentFile.size)}
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setCommentFile(null);
+                            if (commentFileInputRef.current) {
+                              commentFileInputRef.current.value = '';
+                            }
+                          }}
+                          className="text-blue-500 hover:text-blue-700 dark:hover:text-blue-300"
+                          aria-label="Quitar archivo adjunto"
+                        >
+                          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </div>
+                    )}
+
+                    {/* File error message */}
+                    {commentFileError && (
+                      <div className="p-2 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded-lg mb-2" role="alert">
+                        <p className="text-sm text-red-700 dark:text-red-300">{commentFileError}</p>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="mt-2 flex items-center justify-between">
                     <button
                       type="button"
-                      className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-lg transition-colors"
+                      onClick={() => {
+                        setCommentFileError('');
+                        commentFileInputRef.current?.click();
+                      }}
+                      disabled={isSubmittingComment}
+                      className="flex items-center gap-1 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 disabled:opacity-50"
                     >
-                      Enviar
+                      <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" aria-hidden="true">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M18.375 12.739l-7.693 7.693a4.5 4.5 0 01-6.364-6.364l10.94-10.94A3 3 0 1119.5 7.372L8.552 18.32m.009-.01l-.01.01m5.699-9.941l-7.81 7.81a1.5 1.5 0 002.112 2.13" />
+                      </svg>
+                      Adjuntar archivo
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleSubmitComment}
+                      disabled={isSubmittingComment || !newComment.trim()}
+                      className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                    >
+                      {isSubmittingComment ? (
+                        <>
+                          <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                          Enviando...
+                        </>
+                      ) : (
+                        'Enviar'
+                      )}
                     </button>
                   </div>
                 </div>
