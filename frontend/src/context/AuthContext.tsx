@@ -33,10 +33,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return;
       }
 
+      // Check for demo mode first (when backend is not available)
+      const demoUser = localStorage.getItem('demo_user');
+      if (token.startsWith('demo-token-') && demoUser) {
+        const user = JSON.parse(demoUser) as User;
+        setUser(user);
+        setIsLoading(false);
+        return;
+      }
+
       const response = await api.get<User>('/auth/me');
       setUser(response.data);
     } catch (error) {
+      // If API fails, check for demo user as fallback
+      const demoUser = localStorage.getItem('demo_user');
+      if (demoUser) {
+        try {
+          const user = JSON.parse(demoUser) as User;
+          setUser(user);
+          setIsLoading(false);
+          return;
+        } catch {
+          // Invalid demo user, clear storage
+        }
+      }
       localStorage.removeItem('token');
+      localStorage.removeItem('demo_user');
     } finally {
       setIsLoading(false);
     }
@@ -79,11 +101,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = async () => {
     try {
-      await api.post('/auth/logout');
+      // Only call API if not in demo mode
+      const token = localStorage.getItem('token');
+      if (!token?.startsWith('demo-token-')) {
+        await api.post('/auth/logout');
+      }
     } catch (error) {
       // Ignore logout errors
     } finally {
       localStorage.removeItem('token');
+      localStorage.removeItem('demo_user');
       setUser(null);
       router.push('/login');
       toast.success('Sesion cerrada');
