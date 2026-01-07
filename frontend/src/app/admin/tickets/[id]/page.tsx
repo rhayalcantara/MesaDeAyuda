@@ -12,13 +12,22 @@ interface Ticket {
   descripcion: string;
   estado: string;
   prioridad: string;
-  categoria: { id: number; nombre: string };
-  cliente: { id: number; nombre: string; email: string };
-  empleadoAsignado: { id: number; nombre: string } | null;
+  // Flat DTO structure from API
+  categoriaId: number;
+  categoriaNombre: string;
+  clienteId: number;
+  clienteNombre: string;
+  clienteEmail?: string;
+  empleadoAsignadoId?: number | null;
+  empleadoAsignadoNombre?: string | null;
   fechaCreacion: string;
   fechaActualizacion: string;
   fechaPrimeraRespuesta: string | null;
   fechaResolucion: string | null;
+  // Legacy nested structure for demo data compatibility
+  categoria?: { id: number; nombre: string };
+  cliente?: { id: number; nombre: string; email: string };
+  empleadoAsignado?: { id: number; nombre: string } | null;
 }
 
 interface Comentario {
@@ -28,6 +37,15 @@ interface Comentario {
   fechaCreacion: string;
 }
 
+interface Archivo {
+  id: number;
+  nombreOriginal: string;
+  tamanio: number;
+  tipoMime: string;
+  fechaSubida: string;
+  subidoPor: { id: number; nombre: string };
+}
+
 // Demo ticket data for testing without backend
 const demoTicket: Ticket = {
   id: 1,
@@ -35,9 +53,13 @@ const demoTicket: Ticket = {
   descripcion: 'Al intentar generar el reporte mensual de ventas, el sistema muestra un error de timeout. El problema ocurre cuando se seleccionan fechas mayores a 30 dias. He intentado con diferentes navegadores pero el error persiste.',
   estado: 'EnProceso',
   prioridad: 'Alta',
-  categoria: { id: 1, nombre: 'Sistema de Ventas' },
-  cliente: { id: 3, nombre: 'Cliente Demo', email: 'cliente@demo.com' },
-  empleadoAsignado: { id: 2, nombre: 'Empleado Demo' },
+  categoriaId: 1,
+  categoriaNombre: 'Sistema de Ventas',
+  clienteId: 3,
+  clienteNombre: 'Cliente Demo',
+  clienteEmail: 'cliente@demo.com',
+  empleadoAsignadoId: 2,
+  empleadoAsignadoNombre: 'Empleado Demo',
   fechaCreacion: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
   fechaActualizacion: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(),
   fechaPrimeraRespuesta: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
@@ -59,6 +81,25 @@ const demoComentarios: Comentario[] = [
   },
 ];
 
+const demoArchivos: Archivo[] = [
+  {
+    id: 1,
+    nombreOriginal: 'captura_error.png',
+    tamanio: 245760, // ~240KB
+    tipoMime: 'image/png',
+    fechaSubida: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+    subidoPor: { id: 3, nombre: 'Cliente Demo' },
+  },
+  {
+    id: 2,
+    nombreOriginal: 'log_servidor.txt',
+    tamanio: 15360, // ~15KB
+    tipoMime: 'text/plain',
+    fechaSubida: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+    subidoPor: { id: 2, nombre: 'Empleado Demo' },
+  },
+];
+
 export default function AdminTicketDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -66,9 +107,11 @@ export default function AdminTicketDetailPage() {
 
   const [ticket, setTicket] = useState<Ticket | null>(null);
   const [comentarios, setComentarios] = useState<Comentario[]>([]);
+  const [archivos, setArchivos] = useState<Archivo[]>([]);
   const [loading, setLoading] = useState(true);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [activeTab, setActiveTab] = useState<'comentarios' | 'archivos'>('comentarios');
 
   useEffect(() => {
     fetchTicket();
@@ -76,21 +119,62 @@ export default function AdminTicketDetailPage() {
 
   const fetchTicket = async () => {
     try {
-      // Try to fetch from API first
-      const [ticketRes, comentariosRes] = await Promise.all([
-        api.get(`/tickets/${ticketId}`),
-        api.get(`/tickets/${ticketId}/comentarios`),
-      ]);
+      // Fetch ticket first - this is required
+      const ticketRes = await api.get(`/tickets/${ticketId}`);
       setTicket(ticketRes.data);
-      setComentarios(comentariosRes.data);
+
+      // Fetch comentarios - use demo if fails (endpoint may not exist yet)
+      try {
+        const comentariosRes = await api.get(`/tickets/${ticketId}/comentarios`);
+        setComentarios(comentariosRes.data);
+      } catch {
+        setComentarios(demoComentarios);
+      }
+
+      // Fetch archivos - use demo if fails (endpoint may not exist yet)
+      try {
+        const archivosRes = await api.get(`/tickets/${ticketId}/archivos`);
+        setArchivos(archivosRes.data);
+      } catch {
+        setArchivos(demoArchivos);
+      }
     } catch (error) {
-      // Fall back to demo data if API is not available
+      // Fall back to demo data only if ticket fetch fails
       console.log('Using demo data (API not available)');
       setTicket({ ...demoTicket, id: parseInt(ticketId) });
       setComentarios(demoComentarios);
+      setArchivos(demoArchivos);
     } finally {
       setLoading(false);
     }
+  };
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+  };
+
+  const getFileIcon = (mimeType: string) => {
+    if (mimeType.startsWith('image/')) {
+      return (
+        <svg className="h-8 w-8 text-blue-500" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
+        </svg>
+      );
+    }
+    if (mimeType === 'application/pdf') {
+      return (
+        <svg className="h-8 w-8 text-red-500" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+        </svg>
+      );
+    }
+    return (
+      <svg className="h-8 w-8 text-gray-500" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+      </svg>
+    );
   };
 
   const handleDelete = async () => {
@@ -220,42 +304,128 @@ export default function AdminTicketDetailPage() {
               </p>
             </div>
 
-            {/* Comments */}
-            <div className="card p-6">
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-                Conversacion ({comentarios.length})
-              </h2>
-              {comentarios.length === 0 ? (
-                <p className="text-gray-500 dark:text-gray-400">
-                  No hay comentarios todavia.
-                </p>
-              ) : (
-                <div className="space-y-4">
-                  {comentarios.map((comentario) => (
-                    <div
-                      key={comentario.id}
-                      className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4"
-                    >
-                      <div className="flex justify-between items-start mb-2">
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium text-gray-900 dark:text-white">
-                            {comentario.usuario.nombre}
-                          </span>
-                          <span className="text-xs px-2 py-0.5 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300">
-                            {comentario.usuario.rol}
-                          </span>
-                        </div>
-                        <span className="text-sm text-gray-500 dark:text-gray-400">
-                          {formatDate(comentario.fechaCreacion)}
-                        </span>
-                      </div>
-                      <p className="text-gray-700 dark:text-gray-300">
-                        {comentario.texto}
+            {/* Tabs for Comments and Files */}
+            <div className="card">
+              {/* Tab Navigation */}
+              <div className="border-b border-gray-200 dark:border-gray-700">
+                <nav className="flex -mb-px" aria-label="Tabs">
+                  <button
+                    onClick={() => setActiveTab('comentarios')}
+                    className={`py-4 px-6 text-sm font-medium border-b-2 transition-colors ${
+                      activeTab === 'comentarios'
+                        ? 'border-primary-500 text-primary-600 dark:text-primary-400'
+                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
+                    }`}
+                    aria-selected={activeTab === 'comentarios'}
+                    role="tab"
+                  >
+                    <span className="flex items-center gap-2">
+                      <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" aria-hidden="true">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 01.865-.501 48.172 48.172 0 003.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z" />
+                      </svg>
+                      Comentarios ({comentarios.length})
+                    </span>
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('archivos')}
+                    className={`py-4 px-6 text-sm font-medium border-b-2 transition-colors ${
+                      activeTab === 'archivos'
+                        ? 'border-primary-500 text-primary-600 dark:text-primary-400'
+                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
+                    }`}
+                    aria-selected={activeTab === 'archivos'}
+                    role="tab"
+                  >
+                    <span className="flex items-center gap-2">
+                      <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" aria-hidden="true">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M18.375 12.739l-7.693 7.693a4.5 4.5 0 01-6.364-6.364l10.94-10.94A3 3 0 1119.5 7.372L8.552 18.32m.009-.01l-.01.01m5.699-9.941l-7.81 7.81a1.5 1.5 0 002.112 2.13" />
+                      </svg>
+                      Archivos ({archivos.length})
+                    </span>
+                  </button>
+                </nav>
+              </div>
+
+              {/* Tab Content */}
+              <div className="p-6" role="tabpanel">
+                {/* Comments Tab */}
+                {activeTab === 'comentarios' && (
+                  <div>
+                    {comentarios.length === 0 ? (
+                      <p className="text-gray-500 dark:text-gray-400 text-center py-8">
+                        No hay comentarios todavia.
                       </p>
-                    </div>
-                  ))}
-                </div>
-              )}
+                    ) : (
+                      <div className="space-y-4">
+                        {comentarios.map((comentario) => (
+                          <div
+                            key={comentario.id}
+                            className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4"
+                          >
+                            <div className="flex justify-between items-start mb-2">
+                              <div className="flex items-center gap-2">
+                                <span className="font-medium text-gray-900 dark:text-white">
+                                  {comentario.usuario.nombre}
+                                </span>
+                                <span className="text-xs px-2 py-0.5 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300">
+                                  {comentario.usuario.rol}
+                                </span>
+                              </div>
+                              <span className="text-sm text-gray-500 dark:text-gray-400">
+                                {formatDate(comentario.fechaCreacion)}
+                              </span>
+                            </div>
+                            <p className="text-gray-700 dark:text-gray-300">
+                              {comentario.texto}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Files Tab */}
+                {activeTab === 'archivos' && (
+                  <div>
+                    {archivos.length === 0 ? (
+                      <p className="text-gray-500 dark:text-gray-400 text-center py-8">
+                        No hay archivos adjuntos.
+                      </p>
+                    ) : (
+                      <div className="space-y-3">
+                        {archivos.map((archivo) => (
+                          <div
+                            key={archivo.id}
+                            className="flex items-center gap-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-750 transition-colors"
+                          >
+                            <div className="flex-shrink-0" aria-hidden="true">
+                              {getFileIcon(archivo.tipoMime)}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium text-gray-900 dark:text-white truncate">
+                                {archivo.nombreOriginal}
+                              </p>
+                              <p className="text-sm text-gray-500 dark:text-gray-400">
+                                {formatFileSize(archivo.tamanio)} • Subido por {archivo.subidoPor.nombre} • {formatDate(archivo.fechaSubida)}
+                              </p>
+                            </div>
+                            <button
+                              className="flex-shrink-0 p-2 text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded-lg transition-colors"
+                              title="Descargar archivo"
+                              aria-label={`Descargar ${archivo.nombreOriginal}`}
+                            >
+                              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                              </svg>
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
@@ -286,20 +456,20 @@ export default function AdminTicketDetailPage() {
                 <div>
                   <dt className="text-sm text-gray-500 dark:text-gray-400">Categoria</dt>
                   <dd className="mt-1 text-gray-900 dark:text-white">
-                    {ticket.categoria.nombre}
+                    {ticket.categoriaNombre || ticket.categoria?.nombre}
                   </dd>
                 </div>
                 <div>
                   <dt className="text-sm text-gray-500 dark:text-gray-400">Cliente</dt>
                   <dd className="mt-1">
-                    <div className="text-gray-900 dark:text-white">{ticket.cliente.nombre}</div>
-                    <div className="text-sm text-gray-500 dark:text-gray-400">{ticket.cliente.email}</div>
+                    <div className="text-gray-900 dark:text-white">{ticket.clienteNombre || ticket.cliente?.nombre}</div>
+                    <div className="text-sm text-gray-500 dark:text-gray-400">{ticket.clienteEmail || ticket.cliente?.email}</div>
                   </dd>
                 </div>
                 <div>
                   <dt className="text-sm text-gray-500 dark:text-gray-400">Asignado a</dt>
                   <dd className="mt-1 text-gray-900 dark:text-white">
-                    {ticket.empleadoAsignado?.nombre || 'Sin asignar'}
+                    {ticket.empleadoAsignadoNombre || ticket.empleadoAsignado?.nombre || 'Sin asignar'}
                   </dd>
                 </div>
               </dl>

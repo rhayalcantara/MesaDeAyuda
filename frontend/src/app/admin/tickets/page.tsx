@@ -3,15 +3,18 @@
 import { useState, useEffect } from 'react';
 import { MainLayout } from '@/components/layout';
 import Link from 'next/link';
+import api from '@/lib/api';
 
 interface Ticket {
   id: number;
   titulo: string;
   estado: string;
   prioridad: string;
-  categoria: string;
+  categoria?: string;
+  categoriaNombre?: string;
   clienteNombre: string;
-  empleadoNombre: string | null;
+  empleadoNombre?: string | null;
+  empleadoAsignadoNombre?: string | null;
   fechaCreacion: string;
 }
 
@@ -227,16 +230,19 @@ export default function AdminTicketsPage() {
       if (filtroPrioridad) params.append('prioridad', filtroPrioridad);
       if (busqueda) params.append('busqueda', busqueda);
 
-      const response = await fetch(`http://localhost:5000/api/tickets?${params}`);
-      if (response.ok) {
-        const data = await response.json();
+      const response = await api.get(`/tickets?${params}`);
+      // API returns { items: [], totalItems, page, pageSize, totalPages }
+      const data = response.data;
+      if (data.items) {
+        setTickets(data.items);
+      } else if (Array.isArray(data)) {
         setTickets(data);
       } else {
-        // Fallback to demo data
-        console.log('Using demo tickets (API not available)');
+        console.log('Using demo tickets (unexpected response format)');
         setTickets(filterDemoTickets());
       }
     } catch (error) {
+      // Fallback to demo data
       console.log('Using demo tickets (API not available)');
       setTickets(filterDemoTickets());
     } finally {
@@ -429,7 +435,7 @@ export default function AdminTicketsPage() {
                         {ticket.clienteNombre}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                        {ticket.empleadoNombre || 'Sin asignar'}
+                        {ticket.empleadoAsignadoNombre || ticket.empleadoNombre || 'Sin asignar'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                         {new Date(ticket.fechaCreacion).toLocaleDateString('es-ES')}

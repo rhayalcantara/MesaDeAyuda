@@ -502,6 +502,45 @@ public class TicketsController : ControllerBase
         return Ok(new { message = "Ticket eliminado exitosamente" });
     }
 
+    [HttpGet("estadisticas")]
+    [Authorize(Policy = "EmpleadoOrAdmin")]
+    public async Task<ActionResult<object>> GetEstadisticas()
+    {
+        var totalTickets = await _context.Tickets.CountAsync();
+        var ticketsEnProceso = await _context.Tickets.CountAsync(t => t.Estado == "EnProceso");
+        var ticketsAbiertos = await _context.Tickets.CountAsync(t => t.Estado == "Abierto");
+        var ticketsResueltos = await _context.Tickets.CountAsync(t => t.Estado == "Resuelto");
+        var ticketsCerrados = await _context.Tickets.CountAsync(t => t.Estado == "Cerrado");
+        var ticketsEnEspera = await _context.Tickets.CountAsync(t => t.Estado == "EnEspera");
+        var ticketsSinAsignar = await _context.Tickets.CountAsync(t => t.EmpleadoAsignadoId == null && t.Estado == "Abierto");
+
+        var totalEmpleados = await _context.Usuarios.CountAsync(u => u.Rol == "Empleado" && u.Activo);
+        var totalEmpresas = await _context.Empresas.CountAsync(e => e.Activa);
+        var totalClientes = await _context.Usuarios.CountAsync(u => u.Rol == "Cliente" && u.Activo);
+
+        // Tickets by priority
+        var ticketsAlta = await _context.Tickets.CountAsync(t => t.Prioridad == "Alta" && t.Estado != "Cerrado" && t.Estado != "Resuelto");
+        var ticketsMedia = await _context.Tickets.CountAsync(t => t.Prioridad == "Media" && t.Estado != "Cerrado" && t.Estado != "Resuelto");
+        var ticketsBaja = await _context.Tickets.CountAsync(t => t.Prioridad == "Baja" && t.Estado != "Cerrado" && t.Estado != "Resuelto");
+
+        return Ok(new
+        {
+            totalTickets,
+            ticketsEnProceso,
+            ticketsAbiertos,
+            ticketsResueltos,
+            ticketsCerrados,
+            ticketsEnEspera,
+            ticketsSinAsignar,
+            totalEmpleados,
+            totalEmpresas,
+            totalClientes,
+            ticketsAlta,
+            ticketsMedia,
+            ticketsBaja
+        });
+    }
+
     private async Task NotifyEmployeesAboutNewTicket(Ticket ticket)
     {
         try

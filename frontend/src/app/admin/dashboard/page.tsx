@@ -1,10 +1,61 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { MainLayout } from '@/components/layout';
 import { useAuth } from '@/context/AuthContext';
+import api from '@/lib/api';
+
+interface DashboardStats {
+  totalTickets: number;
+  ticketsEnProceso: number;
+  ticketsAbiertos: number;
+  ticketsResueltos: number;
+  ticketsCerrados: number;
+  ticketsEnEspera: number;
+  ticketsSinAsignar: number;
+  totalEmpleados: number;
+  totalEmpresas: number;
+  totalClientes: number;
+  ticketsAlta: number;
+  ticketsMedia: number;
+  ticketsBaja: number;
+}
 
 export default function AdminDashboardPage() {
   const { user } = useAuth();
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchStats();
+  }, []);
+
+  const fetchStats = async () => {
+    try {
+      const response = await api.get('/tickets/estadisticas');
+      setStats(response.data);
+    } catch (error) {
+      console.error('Error fetching stats:', error);
+      // Fallback to zeros if API fails
+      setStats({
+        totalTickets: 0,
+        ticketsEnProceso: 0,
+        ticketsAbiertos: 0,
+        ticketsResueltos: 0,
+        ticketsCerrados: 0,
+        ticketsEnEspera: 0,
+        ticketsSinAsignar: 0,
+        totalEmpleados: 0,
+        totalEmpresas: 0,
+        totalClientes: 0,
+        ticketsAlta: 0,
+        ticketsMedia: 0,
+        ticketsBaja: 0,
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <MainLayout requiredRoles={['Admin']}>
@@ -29,7 +80,9 @@ export default function AdminDashboardPage() {
               </div>
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Total Tickets</p>
-                <p className="text-2xl font-semibold text-gray-900 dark:text-white">0</p>
+                <p className="text-2xl font-semibold text-gray-900 dark:text-white">
+                  {loading ? '...' : stats?.totalTickets ?? 0}
+                </p>
               </div>
             </div>
           </div>
@@ -43,7 +96,9 @@ export default function AdminDashboardPage() {
               </div>
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-500 dark:text-gray-400">En Proceso</p>
-                <p className="text-2xl font-semibold text-gray-900 dark:text-white">0</p>
+                <p className="text-2xl font-semibold text-gray-900 dark:text-white">
+                  {loading ? '...' : stats?.ticketsEnProceso ?? 0}
+                </p>
               </div>
             </div>
           </div>
@@ -57,7 +112,9 @@ export default function AdminDashboardPage() {
               </div>
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Empleados</p>
-                <p className="text-2xl font-semibold text-gray-900 dark:text-white">0</p>
+                <p className="text-2xl font-semibold text-gray-900 dark:text-white">
+                  {loading ? '...' : stats?.totalEmpleados ?? 0}
+                </p>
               </div>
             </div>
           </div>
@@ -71,7 +128,9 @@ export default function AdminDashboardPage() {
               </div>
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Empresas</p>
-                <p className="text-2xl font-semibold text-gray-900 dark:text-white">0</p>
+                <p className="text-2xl font-semibold text-gray-900 dark:text-white">
+                  {loading ? '...' : stats?.totalEmpresas ?? 0}
+                </p>
               </div>
             </div>
           </div>
@@ -82,24 +141,42 @@ export default function AdminDashboardPage() {
           <h2 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
             Alertas de SLA
           </h2>
-          <div className="text-center py-8">
-            <svg
-              className="mx-auto h-12 w-12 text-green-400"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
-            <p className="mt-2 text-gray-500 dark:text-gray-400">
-              No hay alertas de SLA actualmente
-            </p>
-          </div>
+          {stats && stats.ticketsAlta > 0 ? (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between p-3 bg-red-50 dark:bg-red-900/20 rounded-lg">
+                <div className="flex items-center gap-3">
+                  <svg className="h-5 w-5 text-red-600 dark:text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                  <span className="text-red-700 dark:text-red-300">
+                    {stats.ticketsAlta} tickets con prioridad Alta pendientes
+                  </span>
+                </div>
+                <a href="/admin/tickets?prioridad=Alta" className="text-sm text-red-600 dark:text-red-400 hover:underline">
+                  Ver tickets
+                </a>
+              </div>
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <svg
+                className="mx-auto h-12 w-12 text-green-400"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+              <p className="mt-2 text-gray-500 dark:text-gray-400">
+                No hay alertas de SLA actualmente
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Quick Actions */}

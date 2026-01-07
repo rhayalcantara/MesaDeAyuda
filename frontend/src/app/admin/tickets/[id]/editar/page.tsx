@@ -78,13 +78,8 @@ export default function AdminTicketEditPage() {
 
   const fetchData = async () => {
     try {
-      // Try to fetch from API
-      const [ticketRes, categoriasRes, empleadosRes] = await Promise.all([
-        api.get(`/tickets/${ticketId}`),
-        api.get('/categorias'),
-        api.get('/usuarios/empleados'),
-      ]);
-
+      // Fetch ticket first - this is required
+      const ticketRes = await api.get(`/tickets/${ticketId}`);
       const ticket = ticketRes.data;
       setFormData({
         titulo: ticket.titulo,
@@ -94,10 +89,24 @@ export default function AdminTicketEditPage() {
         categoriaId: String(ticket.categoriaId),
         empleadoAsignadoId: ticket.empleadoAsignadoId ? String(ticket.empleadoAsignadoId) : '',
       });
-      setCategorias(categoriasRes.data);
-      setEmpleados(empleadosRes.data);
+
+      // Fetch categories - use demo if fails
+      try {
+        const categoriasRes = await api.get('/categorias');
+        setCategorias(categoriasRes.data);
+      } catch {
+        setCategorias(demoCategorias);
+      }
+
+      // Fetch empleados - use demo if fails (endpoint may not exist yet)
+      try {
+        const empleadosRes = await api.get('/usuarios/empleados');
+        setEmpleados(empleadosRes.data);
+      } catch {
+        setEmpleados(demoEmpleados);
+      }
     } catch (error) {
-      // Fall back to demo data
+      // Fall back to demo data only if ticket fetch fails
       console.log('Using demo data (API not available)');
       const ticket = { ...demoTicket, id: parseInt(ticketId) };
       setFormData({
