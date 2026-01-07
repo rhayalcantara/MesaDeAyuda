@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 
-// Demo ticket detail page for testing timezone display
+// Demo ticket detail page for testing timezone display and tab navigation
 // This page doesn't require authentication
 
 interface Ticket {
@@ -24,8 +24,18 @@ interface Ticket {
 interface Comment {
   id: number;
   usuario: string;
+  rol: string;
   texto: string;
   fecha: Date;
+}
+
+interface Archivo {
+  id: number;
+  nombreOriginal: string;
+  tamanio: number;
+  tipoMime: string;
+  fechaSubida: Date;
+  subidoPor: string;
 }
 
 // Helper function to format date in local timezone
@@ -113,12 +123,20 @@ function StatusBadge({ estado }: { estado: Ticket['estado'] }) {
   );
 }
 
+// Helper function to format file size
+function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+  return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+}
+
 export default function DemoTicketDetailPage() {
   const params = useParams();
   const ticketId = params.id;
 
   const [currentTime, setCurrentTime] = useState<Date>(new Date());
   const [timezone, setTimezone] = useState<string>('');
+  const [activeTab, setActiveTab] = useState<'comentarios' | 'archivos'>('comentarios');
 
   useEffect(() => {
     // Get the user's timezone
@@ -152,21 +170,52 @@ export default function DemoTicketDetailPage() {
   const comments: Comment[] = [
     {
       id: 1,
-      usuario: 'Maria Garcia (Empleado)',
+      usuario: 'Maria Garcia',
+      rol: 'Empleado',
       texto: 'He recibido tu ticket y estoy investigando el problema. Parece estar relacionado con el tamaño del conjunto de datos.',
       fecha: new Date(now.getTime() - 3600000 * 24), // 1 day ago
     },
     {
       id: 2,
-      usuario: 'Juan Perez (Cliente)',
+      usuario: 'Juan Perez',
+      rol: 'Cliente',
       texto: 'Gracias por la respuesta rápida. ¿Hay algún workaround mientras tanto?',
       fecha: new Date(now.getTime() - 3600000 * 20), // 20 hours ago
     },
     {
       id: 3,
-      usuario: 'Maria Garcia (Empleado)',
+      usuario: 'Maria Garcia',
+      rol: 'Empleado',
       texto: 'Sí, por ahora puedes generar reportes en rangos de 15 días y combinarlos. Estoy trabajando en una solución permanente.',
       fecha: new Date(now.getTime() - 3600000 * 2), // 2 hours ago
+    },
+  ];
+
+  // Demo files for testing tab navigation
+  const archivos: Archivo[] = [
+    {
+      id: 1,
+      nombreOriginal: 'captura_error.png',
+      tamanio: 245760, // ~240KB
+      tipoMime: 'image/png',
+      fechaSubida: new Date(now.getTime() - 3600000 * 48), // 2 days ago
+      subidoPor: 'Juan Perez',
+    },
+    {
+      id: 2,
+      nombreOriginal: 'log_servidor.txt',
+      tamanio: 15360, // ~15KB
+      tipoMime: 'text/plain',
+      fechaSubida: new Date(now.getTime() - 3600000 * 24), // 1 day ago
+      subidoPor: 'Maria Garcia',
+    },
+    {
+      id: 3,
+      nombreOriginal: 'reporte_ventas_mayo.pdf',
+      tamanio: 1048576, // 1MB
+      tipoMime: 'application/pdf',
+      fechaSubida: new Date(now.getTime() - 3600000 * 2), // 2 hours ago
+      subidoPor: 'Juan Perez',
     },
   ];
 
@@ -278,53 +327,180 @@ export default function DemoTicketDetailPage() {
           </div>
         </div>
 
-        {/* Comments */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-            Conversación ({comments.length} comentarios)
-          </h2>
-
-          <div className="space-y-4">
-            {comments.map((comment) => (
-              <div key={comment.id} className="border-b border-gray-200 dark:border-gray-700 pb-4 last:border-0 last:pb-0">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="font-medium text-gray-900 dark:text-white">
-                    {comment.usuario}
-                  </span>
-                  <time
-                    dateTime={comment.fecha.toISOString()}
-                    className="text-sm text-gray-500 dark:text-gray-400"
-                    title={formatLocalDate(comment.fecha)}
-                  >
-                    {getRelativeTime(comment.fecha)}
-                  </time>
-                </div>
-                <p className="text-gray-700 dark:text-gray-300">
-                  {comment.texto}
-                </p>
-              </div>
-            ))}
+        {/* Tabs for Comments and Files */}
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
+          {/* Tab Navigation */}
+          <div className="border-b border-gray-200 dark:border-gray-700">
+            <nav className="flex -mb-px" aria-label="Tabs">
+              <button
+                onClick={() => setActiveTab('comentarios')}
+                className={`py-4 px-6 text-sm font-medium border-b-2 transition-colors ${
+                  activeTab === 'comentarios'
+                    ? 'border-primary-500 text-primary-600 dark:text-primary-400'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
+                }`}
+                aria-selected={activeTab === 'comentarios'}
+                role="tab"
+                id="tab-comentarios"
+                aria-controls="tabpanel-comentarios"
+              >
+                <span className="flex items-center gap-2">
+                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 01.865-.501 48.172 48.172 0 003.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z" />
+                  </svg>
+                  Comentarios ({comments.length})
+                </span>
+              </button>
+              <button
+                onClick={() => setActiveTab('archivos')}
+                className={`py-4 px-6 text-sm font-medium border-b-2 transition-colors ${
+                  activeTab === 'archivos'
+                    ? 'border-primary-500 text-primary-600 dark:text-primary-400'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
+                }`}
+                aria-selected={activeTab === 'archivos'}
+                role="tab"
+                id="tab-archivos"
+                aria-controls="tabpanel-archivos"
+              >
+                <span className="flex items-center gap-2">
+                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M18.375 12.739l-7.693 7.693a4.5 4.5 0 01-6.364-6.364l10.94-10.94A3 3 0 1119.5 7.372L8.552 18.32m.009-.01l-.01.01m5.699-9.941l-7.81 7.81a1.5 1.5 0 002.112 2.13" />
+                  </svg>
+                  Archivos ({archivos.length})
+                </span>
+              </button>
+            </nav>
           </div>
 
-          {/* Comment form placeholder */}
-          <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
-            <label htmlFor="new-comment" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Agregar comentario
-            </label>
-            <textarea
-              id="new-comment"
-              rows={3}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-              placeholder="Escribe tu comentario..."
-            />
-            <div className="mt-2 flex justify-end">
-              <button
-                type="button"
-                className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-lg transition-colors"
+          {/* Tab Content */}
+          <div className="p-6">
+            {/* Comments Tab Panel */}
+            {activeTab === 'comentarios' && (
+              <div
+                role="tabpanel"
+                id="tabpanel-comentarios"
+                aria-labelledby="tab-comentarios"
               >
-                Enviar
-              </button>
-            </div>
+                <div className="space-y-4">
+                  {comments.map((comment) => (
+                    <div key={comment.id} className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium text-gray-900 dark:text-white">
+                            {comment.usuario}
+                          </span>
+                          <span className="text-xs px-2 py-0.5 rounded-full bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-300">
+                            {comment.rol}
+                          </span>
+                        </div>
+                        <time
+                          dateTime={comment.fecha.toISOString()}
+                          className="text-sm text-gray-500 dark:text-gray-400"
+                          title={formatLocalDate(comment.fecha)}
+                        >
+                          {getRelativeTime(comment.fecha)}
+                        </time>
+                      </div>
+                      <p className="text-gray-700 dark:text-gray-300">
+                        {comment.texto}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Comment form placeholder */}
+                <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
+                  <label htmlFor="new-comment" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Agregar comentario
+                  </label>
+                  <textarea
+                    id="new-comment"
+                    rows={3}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                    placeholder="Escribe tu comentario..."
+                  />
+                  <div className="mt-2 flex justify-end">
+                    <button
+                      type="button"
+                      className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-lg transition-colors"
+                    >
+                      Enviar
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Files Tab Panel */}
+            {activeTab === 'archivos' && (
+              <div
+                role="tabpanel"
+                id="tabpanel-archivos"
+                aria-labelledby="tab-archivos"
+              >
+                {archivos.length === 0 ? (
+                  <p className="text-gray-500 dark:text-gray-400 text-center py-8">
+                    No hay archivos adjuntos.
+                  </p>
+                ) : (
+                  <div className="space-y-3">
+                    {archivos.map((archivo) => (
+                      <div
+                        key={archivo.id}
+                        className="flex items-center gap-4 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                      >
+                        <div className="flex-shrink-0" aria-hidden="true">
+                          {archivo.tipoMime.startsWith('image/') ? (
+                            <svg className="h-8 w-8 text-blue-500" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
+                            </svg>
+                          ) : archivo.tipoMime === 'application/pdf' ? (
+                            <svg className="h-8 w-8 text-red-500" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+                            </svg>
+                          ) : (
+                            <svg className="h-8 w-8 text-gray-500" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+                            </svg>
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-gray-900 dark:text-white truncate">
+                            {archivo.nombreOriginal}
+                          </p>
+                          <p className="text-sm text-gray-500 dark:text-gray-400">
+                            {formatFileSize(archivo.tamanio)} • Subido por {archivo.subidoPor} • {formatLocalDate(archivo.fechaSubida)}
+                          </p>
+                        </div>
+                        <button
+                          className="flex-shrink-0 p-2 text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded-lg transition-colors"
+                          title="Descargar archivo"
+                          aria-label={`Descargar ${archivo.nombreOriginal}`}
+                        >
+                          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                          </svg>
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Upload button */}
+                <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
+                  <button
+                    type="button"
+                    className="flex items-center gap-2 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-medium rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                  >
+                    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+                    </svg>
+                    Subir archivo
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
