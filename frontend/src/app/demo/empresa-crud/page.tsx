@@ -41,6 +41,9 @@ export default function EmpresaCrudPage() {
   const [completedSteps, setCompletedSteps] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
+  // Success message state (Feature #115)
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
   // Form state
   const [formData, setFormData] = useState({
     nombre: '',
@@ -81,6 +84,10 @@ export default function EmpresaCrudPage() {
     setCompletedSteps(prev => [...prev, 'create']);
     setCurrentStep('view');
     setIsLoading(false);
+
+    // Show success message (Feature #115)
+    setSuccessMessage('Empresa creada exitosamente');
+    setTimeout(() => setSuccessMessage(null), 4000);
   };
 
   const handleEdit = async () => {
@@ -98,6 +105,10 @@ export default function EmpresaCrudPage() {
     setCompletedSteps(prev => [...prev, 'edit']);
     setCurrentStep('view');
     setIsLoading(false);
+
+    // Show success message (Feature #115)
+    setSuccessMessage('Empresa actualizada exitosamente');
+    setTimeout(() => setSuccessMessage(null), 4000);
   };
 
   const handleDelete = async () => {
@@ -224,6 +235,20 @@ export default function EmpresaCrudPage() {
             Demuestra las operaciones Create, Read, Update y Delete para Empresas.
           </p>
         </div>
+
+        {/* Success Message (Feature #115) */}
+        {successMessage && (
+          <div
+            className="mb-6 bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-lg p-4 flex items-center gap-3"
+            role="alert"
+            aria-live="polite"
+          >
+            <svg className="w-5 h-5 text-green-600 dark:text-green-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span className="text-green-700 dark:text-green-300 font-medium">{successMessage}</span>
+          </div>
+        )}
 
         {/* Progress Steps */}
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-6">
