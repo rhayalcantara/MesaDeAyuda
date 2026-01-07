@@ -80,6 +80,12 @@ export default function DemoAdminTicketDetailPage() {
   };
 
   const handleDelete = async () => {
+    // Prevent double-clicks / rapid multiple clicks (Feature #83)
+    if (deleting) {
+      console.log('Delete already in progress, ignoring duplicate click');
+      return;
+    }
+
     setDeleting(true);
     // Simulate API call delay
     await new Promise(resolve => setTimeout(resolve, 1000));
@@ -136,6 +142,21 @@ export default function DemoAdminTicketDetailPage() {
               <li>✅ Despues de confirmar, el ticket se elimina</li>
               <li>✅ Se muestra mensaje de exito</li>
             </ol>
+          </div>
+
+          <div className="mt-4 bg-green-50 dark:bg-green-900/20 rounded-lg p-4">
+            <h4 className="font-semibold text-green-800 dark:text-green-300 mb-2">
+              Feature #83: Rapid delete clicks result in single deletion ✅
+            </h4>
+            <p className="text-sm text-green-700 dark:text-green-400">
+              Proteccion contra multiples clics rapidos implementada:
+            </p>
+            <ul className="list-disc list-inside text-sm text-green-700 dark:text-green-400 mt-2 space-y-1">
+              <li>✅ El boton se deshabilita durante el procesamiento</li>
+              <li>✅ Clics duplicados son ignorados en el handler</li>
+              <li>✅ Solo una eliminacion se ejecuta sin importar cuantas veces se haga clic</li>
+              <li>✅ No hay errores ni comportamiento inesperado</li>
+            </ul>
           </div>
         </div>
       </div>
@@ -346,16 +367,17 @@ export default function DemoAdminTicketDetailPage() {
               {/* Feature Info */}
               <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
                 <h4 className="font-semibold text-blue-800 dark:text-blue-300 mb-2">
-                  Feature #39: Delete with Confirmation
+                  Features #39 y #83: Delete con Proteccion
                 </h4>
                 <p className="text-sm text-blue-700 dark:text-blue-400 mb-2">
-                  Haz clic en el boton rojo &quot;Eliminar&quot; para probar el flujo de eliminacion con confirmacion.
+                  Haz clic en el boton rojo &quot;Eliminar&quot; para probar el flujo de eliminacion con confirmacion y proteccion contra clics multiples.
                 </p>
                 <ul className="text-xs text-blue-600 dark:text-blue-400 space-y-1">
                   <li>• Dialogo de confirmacion</li>
                   <li>• Advertencia clara</li>
                   <li>• Botones Cancelar/Eliminar</li>
                   <li>• Estado de carga al eliminar</li>
+                  <li>• <strong>Feature #83:</strong> Clics rapidos solo ejecutan una vez</li>
                 </ul>
               </div>
             </div>
