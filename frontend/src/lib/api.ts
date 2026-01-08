@@ -1,7 +1,26 @@
 import axios, { AxiosError, AxiosInstance, InternalAxiosRequestConfig } from 'axios';
 import { ApiError } from '@/types';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+// For unified IIS deployment, use relative URL '/api'
+// For development, use full URL 'http://localhost:5000/api'
+const getApiUrl = (): string => {
+  // Environment variable takes precedence
+  if (process.env.NEXT_PUBLIC_API_URL) {
+    return process.env.NEXT_PUBLIC_API_URL;
+  }
+
+  // In browser, check if we're on the same origin as the backend
+  if (typeof window !== 'undefined') {
+    // If accessing from IIS unified deployment, use relative path
+    // The backend will serve both static files and API
+    return '/api';
+  }
+
+  // Development fallback
+  return 'http://localhost:5000/api';
+};
+
+const API_URL = getApiUrl();
 
 const api: AxiosInstance = axios.create({
   baseURL: API_URL,

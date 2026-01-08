@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using Microsoft.Extensions.FileProviders;
 using MDAyuda.API.Data;
 using MDAyuda.API.Services;
 using MDAyuda.API.Middleware;
@@ -105,7 +106,12 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
     {
-        policy.WithOrigins("http://localhost:3000", "http://localhost:3001")
+        // In production with unified deployment, CORS is less critical
+        // since frontend and backend are on the same origin
+        var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
+            ?? new[] { "http://localhost:3000", "http://localhost:3001" };
+
+        policy.WithOrigins(allowedOrigins)
               .AllowAnyMethod()
               .AllowAnyHeader()
               .AllowCredentials();
@@ -124,7 +130,55 @@ if (app.Environment.IsDevelopment())
     });
 }
 
+// Also enable Swagger in production if configured
+var enableSwaggerInProd = builder.Configuration.GetValue<bool>("EnableSwaggerInProduction");
+if (!app.Environment.IsDevelopment() && enableSwaggerInProd)
+{
+    app.UseSwagger();
+    app.UseSwaggerUI(c =>
+    {
+        c.SwaggerEndpoint("/swagger/v1/swagger.json", "MDAyuda API v1");
+    });
+}
+
 app.UseHttpsRedirection();
+
+// For unified deployment, serve static files from wwwroot
+// The Next.js export will be placed in wwwroot folder
+var wwwrootPath = Path.Combine(app.Environment.ContentRootPath, "wwwroot");
+if (Directory.Exists(wwwrootPath))
+{
+    app.UseDefaultFiles(new DefaultFilesOptions
+    {
+        FileProvider = new PhysicalFileProvider(wwwrootPath),
+        DefaultFileNames = new List<string> { "index.html" }
+    });
+
+    app.UseStaticFiles(new StaticFileOptions
+    {
+        FileProvider = new PhysicalFileProvider(wwwrootPath),
+        ServeUnknownFileTypes = false,
+        OnPrepareResponse = ctx =>
+        {
+            // Cache static assets for 1 year
+            if (ctx.File.Name.EndsWith(".js") ||
+                ctx.File.Name.EndsWith(".css") ||
+                ctx.File.Name.EndsWith(".woff2") ||
+                ctx.File.Name.EndsWith(".png") ||
+                ctx.File.Name.EndsWith(".jpg") ||
+                ctx.File.Name.EndsWith(".svg"))
+            {
+                ctx.Context.Response.Headers.Append("Cache-Control", "public,max-age=31536000,immutable");
+            }
+            // Don't cache HTML files
+            else if (ctx.File.Name.EndsWith(".html"))
+            {
+                ctx.Context.Response.Headers.Append("Cache-Control", "no-cache,no-store,must-revalidate");
+            }
+        }
+    });
+}
+
 app.UseCors("AllowFrontend");
 
 app.UseAuthentication();
@@ -134,6 +188,40 @@ app.UseAuthorization();
 app.UseMiddleware<ErrorHandlingMiddleware>();
 
 app.MapControllers();
+
+// SPA fallback: Serve index.html for non-API routes that don't match static files
+// This must come AFTER MapControllers
+app.MapFallback(async context =>
+{
+    // Don't fallback for API routes - they should return 404
+    if (context.Request.Path.StartsWithSegments("/api"))
+    {
+        context.Response.StatusCode = 404;
+        await context.Response.WriteAsJsonAsync(new { error = "API endpoint not found" });
+        return;
+    }
+
+    // Don't fallback for swagger
+    if (context.Request.Path.StartsWithSegments("/swagger"))
+    {
+        context.Response.StatusCode = 404;
+        return;
+    }
+
+    // Serve index.html for SPA routes
+    var indexPath = Path.Combine(wwwrootPath, "index.html");
+    if (File.Exists(indexPath))
+    {
+        context.Response.ContentType = "text/html";
+        context.Response.Headers.Append("Cache-Control", "no-cache,no-store,must-revalidate");
+        await context.Response.SendFileAsync(indexPath);
+    }
+    else
+    {
+        context.Response.StatusCode = 404;
+        await context.Response.WriteAsync("Frontend not deployed. Please run 'npm run build' in the frontend folder and copy the 'out' folder to 'wwwroot'.");
+    }
+});
 
 // Ensure database is created and seed data
 using (var scope = app.Services.CreateScope())

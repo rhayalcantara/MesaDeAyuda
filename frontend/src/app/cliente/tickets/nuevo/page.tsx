@@ -96,7 +96,7 @@ export default function NuevoTicketPage() {
   };
 
   return (
-    <MainLayout requiredRole="Cliente">
+    <MainLayout requiredRoles={['Cliente']}>
       <div className="max-w-2xl mx-auto">
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
