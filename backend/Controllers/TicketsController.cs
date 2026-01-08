@@ -264,7 +264,7 @@ public class TicketsController : ControllerBase
 
             if (user?.Empresa?.ConfigVisibilidadTickets == "empresa")
             {
-                if (ticket.Cliente!.EmpresaId != user.EmpresaId)
+                if (ticket.Cliente?.EmpresaId != user.EmpresaId)
                 {
                     return Forbid();
                 }
@@ -281,20 +281,20 @@ public class TicketsController : ControllerBase
             Titulo = ticket.Titulo,
             Descripcion = ticket.Descripcion,
             ClienteId = ticket.ClienteId,
-            ClienteNombre = ticket.Cliente!.Nombre,
-            ClienteEmail = ticket.Cliente.Email,
+            ClienteNombre = ticket.Cliente?.Nombre,
+            ClienteEmail = ticket.Cliente?.Email,
             EmpleadoAsignadoId = ticket.EmpleadoAsignadoId,
             EmpleadoAsignadoNombre = ticket.EmpleadoAsignado?.Nombre,
             CategoriaId = ticket.CategoriaId,
-            CategoriaNombre = ticket.Categoria!.Nombre,
+            CategoriaNombre = ticket.Categoria?.Nombre,
             Prioridad = ticket.Prioridad,
             Estado = ticket.Estado,
             FechaCreacion = ticket.FechaCreacion,
             FechaActualizacion = ticket.FechaActualizacion,
             FechaPrimeraRespuesta = ticket.FechaPrimeraRespuesta,
             FechaResolucion = ticket.FechaResolucion,
-            ComentariosCount = ticket.Comentarios.Count,
-            ArchivosCount = ticket.Archivos.Count,
+            ComentariosCount = ticket.Comentarios?.Count ?? 0,
+            ArchivosCount = ticket.Archivos?.Count ?? 0,
             RowVersion = ticket.RowVersion != null ? Convert.ToBase64String(ticket.RowVersion) : null
         });
     }
@@ -446,7 +446,7 @@ public class TicketsController : ControllerBase
 
     [HttpPut("{id}/asignar")]
     [Authorize(Policy = "EmpleadoOrAdmin")]
-    public async Task<IActionResult> AssignTicket(int id, [FromBody] AssignTicketDto dto)
+    public async Task<IActionResult> AssignTicket(int id, [FromBody] AssignTicketDto? dto = null)
     {
         var ticket = await _context.Tickets.FindAsync(id);
         if (ticket == null)
@@ -454,13 +454,16 @@ public class TicketsController : ControllerBase
             return NotFound(new { message = "Ticket no encontrado" });
         }
 
-        var empleado = await _context.Usuarios.FindAsync(dto.EmpleadoId);
+        // If no body provided, self-assign to current user
+        var empleadoId = dto?.EmpleadoId ?? GetUserId();
+
+        var empleado = await _context.Usuarios.FindAsync(empleadoId);
         if (empleado == null || empleado.Rol != "Empleado" && empleado.Rol != "Admin" || !empleado.Activo)
         {
             return BadRequest(new { message = "Empleado invalido" });
         }
 
-        ticket.EmpleadoAsignadoId = dto.EmpleadoId;
+        ticket.EmpleadoAsignadoId = empleadoId;
         if (ticket.Estado == "Abierto")
         {
             ticket.Estado = "EnProceso";
@@ -469,7 +472,7 @@ public class TicketsController : ControllerBase
 
         await _context.SaveChangesAsync();
 
-        _logger.LogInformation("Ticket {TicketId} assigned to employee {EmpleadoId}", id, dto.EmpleadoId);
+        _logger.LogInformation("Ticket {TicketId} assigned to employee {EmpleadoId}", id, empleadoId);
 
         return Ok(new { message = "Ticket asignado exitosamente" });
     }

@@ -59,8 +59,8 @@ public class UpdateTicketDto
 
 public class AssignTicketDto
 {
-    [Required(ErrorMessage = "El empleado es requerido")]
-    public int EmpleadoId { get; set; }
+    // Nullable to support self-assignment when no body is provided
+    public int? EmpleadoId { get; set; }
 }
 
 public class ChangeStatusDto

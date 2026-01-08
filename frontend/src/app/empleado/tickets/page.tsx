@@ -3,16 +3,25 @@
 import { useState, useEffect } from 'react';
 import { MainLayout } from '@/components/layout';
 import Link from 'next/link';
+import api from '@/lib/api';
 
 interface Ticket {
   id: number;
   titulo: string;
   estado: string;
   prioridad: string;
-  categoria: string;
+  categoriaNombre: string;
   clienteNombre: string;
-  empleadoNombre: string | null;
+  empleadoAsignadoNombre: string | null;
   fechaCreacion: string;
+}
+
+interface TicketListResponse {
+  items: Ticket[];
+  totalItems: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
 }
 
 export default function EmpleadoTicketsPage() {
@@ -35,17 +44,14 @@ export default function EmpleadoTicketsPage() {
         if (filtroPrioridad) params.append('prioridad', filtroPrioridad);
         if (busqueda) params.append('busqueda', busqueda);
 
-        const response = await fetch(`http://localhost:5000/api/tickets?${params}`, {
+        const response = await api.get<TicketListResponse>(`/tickets?${params}`, {
           signal: abortController.signal
         });
 
         // Only update state if component is still mounted
         if (!isMounted) return;
 
-        if (response.ok) {
-          const data = await response.json();
-          setTickets(data);
-        }
+        setTickets(response.data.items);
       } catch (error: unknown) {
         // Don't update state if request was aborted (user navigated away)
         if (error instanceof Error && error.name === 'AbortError') {
@@ -242,7 +248,7 @@ export default function EmpleadoTicketsPage() {
                         {ticket.clienteNombre}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                        {ticket.empleadoNombre || 'Sin asignar'}
+                        {ticket.empleadoAsignadoNombre || 'Sin asignar'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                         {new Date(ticket.fechaCreacion).toLocaleDateString('es-ES')}

@@ -24,6 +24,10 @@ public class ApplicationDbContext : DbContext
     {
         base.OnModelCreating(modelBuilder);
 
+        // For SQLite, ignore the RowVersion column as SQLite doesn't support [Timestamp]
+        // This prevents "no such column: t.RowVersion" errors
+        modelBuilder.Entity<Ticket>().Ignore(t => t.RowVersion);
+
         // Configure unique constraints
         modelBuilder.Entity<Usuario>()
             .HasIndex(u => u.Email)
