@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { MainLayout } from '@/components/layout';
+import api from '@/lib/api';
+import toast from 'react-hot-toast';
 
 interface Empresa {
   id: number;
@@ -12,38 +14,8 @@ interface Empresa {
   colorPrimario: string | null;
   activa: boolean;
   fechaCreacion: string;
+  clientesCount?: number;
 }
-
-// Demo data for testing without backend
-const demoEmpresas: Empresa[] = [
-  {
-    id: 1,
-    nombre: 'Empresa Demo SA',
-    configVisibilidadTickets: 'propios',
-    logoUrl: null,
-    colorPrimario: '#2563eb',
-    activa: true,
-    fechaCreacion: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
-  },
-  {
-    id: 2,
-    nombre: 'Tecnologias ABC',
-    configVisibilidadTickets: 'empresa',
-    logoUrl: null,
-    colorPrimario: '#16a34a',
-    activa: true,
-    fechaCreacion: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString(),
-  },
-  {
-    id: 3,
-    nombre: 'Consultores XYZ',
-    configVisibilidadTickets: 'propios',
-    logoUrl: null,
-    colorPrimario: '#dc2626',
-    activa: false,
-    fechaCreacion: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString(),
-  },
-];
 
 export default function AdminEmpresasPage() {
   const [empresas, setEmpresas] = useState<Empresa[]>([]);
@@ -63,18 +35,11 @@ export default function AdminEmpresasPage() {
 
   const fetchEmpresas = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/empresas');
-      if (response.ok) {
-        const data = await response.json();
-        setEmpresas(data);
-      } else {
-        // Fall back to demo data
-        console.log('Using demo data (API not available)');
-        setEmpresas(demoEmpresas);
-      }
-    } catch (error) {
-      console.log('Using demo data (API not available)');
-      setEmpresas(demoEmpresas);
+      const response = await api.get<Empresa[]>('/empresas');
+      setEmpresas(response.data);
+    } catch (error: any) {
+      console.error('Error fetching empresas:', error);
+      toast.error('Error al cargar empresas');
     } finally {
       setLoading(false);
     }
@@ -83,24 +48,19 @@ export default function AdminEmpresasPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const url = editingEmpresa
-        ? `http://localhost:5000/api/empresas/${editingEmpresa.id}`
-        : 'http://localhost:5000/api/empresas';
-      const method = editingEmpresa ? 'PUT' : 'POST';
-
-      const response = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
-      });
-
-      if (response.ok) {
-        fetchEmpresas();
-        setShowModal(false);
-        resetForm();
+      if (editingEmpresa) {
+        await api.put(`/empresas/${editingEmpresa.id}`, formData);
+        toast.success('Empresa actualizada exitosamente');
+      } else {
+        await api.post('/empresas', formData);
+        toast.success('Empresa creada exitosamente');
       }
-    } catch (error) {
+      fetchEmpresas();
+      setShowModal(false);
+      resetForm();
+    } catch (error: any) {
       console.error('Error saving empresa:', error);
+      toast.error(error.response?.data?.message || 'Error al guardar empresa');
     }
   };
 
@@ -117,20 +77,12 @@ export default function AdminEmpresasPage() {
 
   const handleToggleActive = async (empresa: Empresa) => {
     try {
-      const response = await fetch(`http://localhost:5000/api/empresas/${empresa.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...empresa,
-          activa: !empresa.activa,
-        }),
-      });
-
-      if (response.ok) {
-        fetchEmpresas();
-      }
-    } catch (error) {
+      await api.put(`/empresas/${empresa.id}/toggle-activa`);
+      toast.success(`Empresa ${empresa.activa ? 'desactivada' : 'activada'} exitosamente`);
+      fetchEmpresas();
+    } catch (error: any) {
       console.error('Error toggling empresa:', error);
+      toast.error(error.response?.data?.message || 'Error al cambiar estado');
     }
   };
 

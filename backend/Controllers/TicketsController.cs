@@ -580,6 +580,141 @@ public class TicketsController : ControllerBase
         });
     }
 
+    // ==================== COMENTARIOS ====================
+
+    [HttpGet("{id}/comentarios")]
+    public async Task<ActionResult<List<ComentarioDto>>> GetComentarios(int id)
+    {
+        var ticket = await _context.Tickets.FindAsync(id);
+        if (ticket == null)
+        {
+            return NotFound(new { message = "Ticket no encontrado" });
+        }
+
+        // Check access permissions
+        var userId = GetUserId();
+        var userRole = GetUserRole();
+
+        if (userRole == "Cliente" && ticket.ClienteId != userId)
+        {
+            var user = await _context.Usuarios
+                .Include(u => u.Empresa)
+                .FirstOrDefaultAsync(u => u.Id == userId);
+
+            if (user?.Empresa?.ConfigVisibilidadTickets != "empresa" ||
+                ticket.ClienteId != userId)
+            {
+                // Check if same empresa
+                var ticketClient = await _context.Usuarios.FindAsync(ticket.ClienteId);
+                if (ticketClient?.EmpresaId != user?.EmpresaId)
+                {
+                    return Forbid();
+                }
+            }
+        }
+
+        var comentarios = await _context.Comentarios
+            .Include(c => c.Usuario)
+            .Where(c => c.TicketId == id)
+            .OrderBy(c => c.FechaCreacion)
+            .Select(c => new ComentarioDto
+            {
+                Id = c.Id,
+                TicketId = c.TicketId,
+                UsuarioId = c.UsuarioId,
+                UsuarioNombre = c.Usuario!.Nombre,
+                UsuarioRol = c.Usuario.Rol,
+                Texto = c.Texto,
+                FechaCreacion = c.FechaCreacion
+            })
+            .ToListAsync();
+
+        return Ok(comentarios);
+    }
+
+    [HttpPost("{id}/comentarios")]
+    public async Task<ActionResult<ComentarioDto>> AddComentario(int id, [FromBody] CreateComentarioDto dto)
+    {
+        var ticket = await _context.Tickets
+            .Include(t => t.Cliente)
+            .FirstOrDefaultAsync(t => t.Id == id);
+
+        if (ticket == null)
+        {
+            return NotFound(new { message = "Ticket no encontrado" });
+        }
+
+        var userId = GetUserId();
+        var userRole = GetUserRole();
+
+        // Check access permissions
+        if (userRole == "Cliente" && ticket.ClienteId != userId)
+        {
+            var user = await _context.Usuarios
+                .Include(u => u.Empresa)
+                .FirstOrDefaultAsync(u => u.Id == userId);
+
+            if (user?.Empresa?.ConfigVisibilidadTickets != "empresa")
+            {
+                return Forbid();
+            }
+
+            var ticketClient = await _context.Usuarios.FindAsync(ticket.ClienteId);
+            if (ticketClient?.EmpresaId != user?.EmpresaId)
+            {
+                return Forbid();
+            }
+        }
+
+        var comentario = new Comentario
+        {
+            TicketId = id,
+            UsuarioId = userId,
+            Texto = dto.Texto,
+            FechaCreacion = DateTime.UtcNow
+        };
+
+        _context.Comentarios.Add(comentario);
+
+        // Update first response time if this is the first employee/admin response
+        if ((userRole == "Empleado" || userRole == "Admin") && ticket.FechaPrimeraRespuesta == null)
+        {
+            ticket.FechaPrimeraRespuesta = DateTime.UtcNow;
+        }
+
+        ticket.FechaActualizacion = DateTime.UtcNow;
+
+        await _context.SaveChangesAsync();
+
+        // Load user for response
+        await _context.Entry(comentario).Reference(c => c.Usuario).LoadAsync();
+
+        _logger.LogInformation("Comment added to ticket {TicketId} by user {UserId}", id, userId);
+
+        // Notify ticket owner if comment is from employee
+        if (userRole != "Cliente" && ticket.Cliente != null)
+        {
+            _ = _emailService.SendTicketCommentEmailAsync(
+                ticket.Cliente.Email,
+                ticket.Titulo,
+                ticket.Id,
+                comentario.Usuario!.Nombre);
+        }
+
+        return CreatedAtAction(nameof(GetComentarios), new { id }, new ComentarioDto
+        {
+            Id = comentario.Id,
+            TicketId = comentario.TicketId,
+            UsuarioId = comentario.UsuarioId,
+            UsuarioNombre = comentario.Usuario!.Nombre,
+            UsuarioRol = comentario.Usuario.Rol,
+            Texto = comentario.Texto,
+            FechaCreacion = comentario.FechaCreacion
+        });
+    }
+
+    // ==================== HELPERS ====================
+
     private async Task NotifyEmployeesAboutNewTicket(Ticket ticket)
     {
         try

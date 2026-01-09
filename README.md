@@ -27,7 +27,7 @@ Sistema de mesa de ayuda donde clientes de multiples empresas pueden reportar pr
 
 ## Requisitos Previos
 
-- .NET SDK 8.0 o superior
+- .NET SDK 9.0 o superior
 - Node.js 18+ y npm
 - SQL Server (LocalDB para desarrollo)
 - Editor de codigo (VS Code recomendado)

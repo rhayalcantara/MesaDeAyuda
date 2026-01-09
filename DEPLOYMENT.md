@@ -9,10 +9,10 @@ donde el backend ASP.NET Core sirve tanto la API como el frontend estatico de Ne
 - Windows Server 2016+ o Windows 10+
 - IIS 10+ con ASP.NET Core Hosting Bundle instalado
 - SQL Server (o SQL Server Express)
-- .NET 8.0 Runtime
+- .NET 9.0 Runtime
 
 ### Herramientas de Build
-- .NET SDK 8.0
+- .NET SDK 9.0
 - Node.js 18+
 - npm o yarn
 
@@ -150,7 +150,7 @@ Write-Host "Build completado! Los archivos estan en la carpeta 'deploy'"
 ### 1. Instalar ASP.NET Core Hosting Bundle
 
 Descargar e instalar desde:
-https://dotnet.microsoft.com/download/dotnet/8.0
+https://dotnet.microsoft.com/download/dotnet/9.0
 
 ### 2. Crear Sitio en IIS
 
@@ -278,7 +278,7 @@ Navegar a `http://tu-servidor/swagger`
 
 ### Error 502.5 - Proceso no inicia
 
-- Verificar que .NET 8.0 Runtime este instalado
+- Verificar que .NET 9.0 Runtime este instalado
 - Revisar logs en Event Viewer
 - Habilitar stdout logging:
 

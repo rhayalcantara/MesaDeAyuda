@@ -7,6 +7,17 @@ public static class DbSeeder
 {
     public static async Task SeedAsync(ApplicationDbContext context)
     {
+        // Fix incorrect role names (migration from "Administrador" to "Admin")
+        var usersWithWrongRole = context.Usuarios.Where(u => u.Rol == "Administrador").ToList();
+        foreach (var user in usersWithWrongRole)
+        {
+            user.Rol = "Admin";
+        }
+        if (usersWithWrongRole.Any())
+        {
+            await context.SaveChangesAsync();
+        }
+
         // Seed default admin user
         if (!context.Usuarios.Any(u => u.Rol == "Admin"))
         {

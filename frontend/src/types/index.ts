@@ -31,6 +31,44 @@ export interface ChangePasswordRequest {
   confirmPassword: string;
 }
 
+// Usuario management types
+export interface UsuarioList {
+  id: number;
+  email: string;
+  nombre: string;
+  rol: UserRole;
+  empresaId: number | null;
+  empresaNombre: string | null;
+  activo: boolean;
+  ultimoAcceso: string | null;
+  fechaCreacion: string;
+}
+
+export interface CreateUsuarioRequest {
+  email: string;
+  nombre: string;
+  rol: UserRole;
+  empresaId?: number | null;
+}
+
+export interface UpdateUsuarioRequest {
+  email: string;
+  nombre: string;
+  rol: UserRole;
+  empresaId?: number | null;
+  activo: boolean;
+}
+
+export interface CreateUsuarioResponse {
+  usuario: UsuarioList;
+  temporaryPassword: string;
+}
+
+export interface ResetPasswordResponse {
+  message: string;
+  temporaryPassword: string;
+}
+
 // Empresa types
 export type TicketVisibility = 'propios' | 'empresa';
 

@@ -4,20 +4,23 @@ import { ApiError } from '@/types';
 // For unified IIS deployment, use relative URL '/api'
 // For development, use full URL 'http://localhost:5000/api'
 const getApiUrl = (): string => {
-  // Environment variable takes precedence
-  if (process.env.NEXT_PUBLIC_API_URL) {
-    return process.env.NEXT_PUBLIC_API_URL;
-  }
-
-  // In browser, check if we're on the same origin as the backend
+  // In browser, detect environment based on hostname
   if (typeof window !== 'undefined') {
-    // If accessing from IIS unified deployment, use relative path
-    // The backend will serve both static files and API
+    const hostname = window.location.hostname;
+
+    // If running locally (localhost or 127.0.0.1), use localhost API
+    if (hostname === 'localhost' || hostname === '127.0.0.1') {
+      // Use environment variable if set, otherwise default localhost
+      return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+    }
+
+    // In production (any non-localhost hostname), ALWAYS use relative path
+    // This ensures API calls go to the same server, avoiding CORS issues
     return '/api';
   }
 
-  // Development fallback
-  return 'http://localhost:5000/api';
+  // Server-side rendering fallback (shouldn't happen with static export)
+  return process.env.NEXT_PUBLIC_API_URL || '/api';
 };
 
 const API_URL = getApiUrl();
@@ -57,7 +60,11 @@ api.interceptors.response.use(
       if (status === 401) {
         if (typeof window !== 'undefined') {
           localStorage.removeItem('token');
-          window.location.href = '/login';
+          // Only redirect if not already on login page to avoid infinite loop
+          const currentPath = window.location.pathname;
+          if (!currentPath.includes('/login') && !currentPath.includes('/solicitar-registro')) {
+            window.location.href = '/login';
+          }
         }
       }
 

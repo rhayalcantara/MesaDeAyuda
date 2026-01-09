@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { MainLayout } from '@/components/layout';
+import api from '@/lib/api';
+import toast from 'react-hot-toast';
 
 interface Empresa {
   id: number;
@@ -24,51 +26,6 @@ interface Cliente {
   fechaCreacion: string;
 }
 
-// Demo data for testing without backend
-const demoEmpresas: Record<number, Empresa> = {
-  1: {
-    id: 1,
-    nombre: 'Empresa Demo SA',
-    configVisibilidadTickets: 'propios',
-    logoUrl: null,
-    colorPrimario: '#2563eb',
-    activa: true,
-    fechaCreacion: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
-    fechaActualizacion: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-  },
-  2: {
-    id: 2,
-    nombre: 'Tecnologias ABC',
-    configVisibilidadTickets: 'empresa',
-    logoUrl: null,
-    colorPrimario: '#16a34a',
-    activa: true,
-    fechaCreacion: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString(),
-    fechaActualizacion: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
-  },
-  3: {
-    id: 3,
-    nombre: 'Consultores XYZ',
-    configVisibilidadTickets: 'propios',
-    logoUrl: null,
-    colorPrimario: '#dc2626',
-    activa: false,
-    fechaCreacion: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString(),
-    fechaActualizacion: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString(),
-  },
-};
-
-const demoClientes: Record<number, Cliente[]> = {
-  1: [
-    { id: 1, nombre: 'Juan Perez', email: 'juan@empresa-demo.com', activo: true, fechaCreacion: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000).toISOString() },
-    { id: 2, nombre: 'Maria Garcia', email: 'maria@empresa-demo.com', activo: true, fechaCreacion: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString() },
-  ],
-  2: [
-    { id: 3, nombre: 'Carlos Lopez', email: 'carlos@tecnologias-abc.com', activo: true, fechaCreacion: new Date(Date.now() - 50 * 24 * 60 * 60 * 1000).toISOString() },
-  ],
-  3: [],
-};
-
 export default function AdminEmpresaDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -85,29 +42,19 @@ export default function AdminEmpresaDetailPage() {
   const fetchEmpresa = async () => {
     try {
       const [empresaRes, clientesRes] = await Promise.all([
-        fetch(`http://localhost:5000/api/empresas/${empresaId}`),
-        fetch(`http://localhost:5000/api/empresas/${empresaId}/clientes`),
+        api.get<Empresa>(`/empresas/${empresaId}`),
+        api.get<Cliente[]>(`/empresas/${empresaId}/clientes`),
       ]);
 
-      if (empresaRes.ok) {
-        const empresaData = await empresaRes.json();
-        setEmpresa(empresaData);
+      setEmpresa(empresaRes.data);
+      setClientes(clientesRes.data);
+    } catch (error: any) {
+      console.error('Error fetching empresa:', error);
+      if (error.response?.status === 404) {
+        setEmpresa(null);
       } else {
-        // Fall back to demo data
-        console.log('Using demo data (API not available)');
-        setEmpresa(demoEmpresas[empresaId] || null);
+        toast.error('Error al cargar empresa');
       }
-
-      if (clientesRes.ok) {
-        const clientesData = await clientesRes.json();
-        setClientes(clientesData);
-      } else {
-        setClientes(demoClientes[empresaId] || []);
-      }
-    } catch (error) {
-      console.log('Using demo data (API not available)');
-      setEmpresa(demoEmpresas[empresaId] || null);
-      setClientes(demoClientes[empresaId] || []);
     } finally {
       setLoading(false);
     }

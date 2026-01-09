@@ -32,8 +32,22 @@ if [ ! -d "node_modules" ]; then
     npm install
 fi
 
+# Temporarily rename .env.local to prevent it from overriding .env.production
+# This ensures the production build uses relative API URLs (/api) instead of localhost
+if [ -f ".env.local" ]; then
+    echo "     Moviendo .env.local temporalmente para build de produccion..."
+    mv .env.local .env.local.bak
+    RESTORE_ENV_LOCAL=true
+fi
+
 echo "     Ejecutando build..."
 npm run build
+
+# Restore .env.local for local development
+if [ "$RESTORE_ENV_LOCAL" = true ] && [ -f ".env.local.bak" ]; then
+    echo "     Restaurando .env.local..."
+    mv .env.local.bak .env.local
+fi
 
 # Build backend
 echo ""
