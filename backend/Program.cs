@@ -61,6 +61,9 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
     {
         options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"));
     }
+
+    // Suppress pending model changes warning (migrations are managed via CLI)
+    options.ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning));
 });
 
 // Configure JWT Authentication
