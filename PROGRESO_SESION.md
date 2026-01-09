@@ -1,19 +1,100 @@
 # Progreso de Sesion - MDAyuda
 
 **Fecha:** 2026-01-09
-**Estado:** Pendiente despliegue a produccion
+**Estado:** Desarrollo completado - Mejoras de Acciones Rápidas
+**Última sesión:** Sesión 61 - Acciones Rápidas
 
 ---
 
-## Resumen de Trabajo Realizado
+## Sesión 61: Mejoras de Acciones Rápidas (COMPLETADO)
 
-### 1. CRUD de Usuarios (COMPLETADO)
+### Problema Identificado
+Se detectaron 8 problemas en el sistema de acciones rápidas de tickets:
+1. Falta validación de permisos en backend (CRÍTICO)
+2. Sin feedback visual en botones
+3. Sin optimistic updates
+4. Eliminación física de tickets
+5. Race condition mal manejada
+6. Sin validación de transiciones de estado
+7. Sin historial de cambios
+8. Permisos de cliente inconsistentes
+
+### Soluciones Implementadas
+
+#### Fase 1: Seguridad (Backend)
+- Validación de permisos en cambio de estado
+- Solo el empleado asignado puede modificar tickets
+- Admin puede modificar cualquier ticket
+
+#### Fase 2: Validación de Transiciones
+- Creado `backend/Services/TicketStateService.cs` (máquina de estados)
+- Transiciones válidas definidas por rol
+- Endpoint `GET /api/tickets/{id}/transiciones`
+
+#### Fase 3: UX - Feedback Visual
+- Spinners en botones de cambio de estado
+- Spinner en botón "Asignarme este ticket"
+- Spinner en botón "Eliminar" (admin)
+- Mensajes de éxito/error claros
+
+#### Fase 4: Manejo de Concurrencia
+- Detección de conflictos (código 409)
+- Recarga automática de datos
+- Indicador de sincronización
+
+#### Fase 5: Historial de Cambios
+- Creado `backend/Models/TicketHistorial.cs`
+- Registro automático de cambios de estado
+- Registro de asignaciones
+- Endpoint `GET /api/tickets/{id}/historial`
+
+#### Fase 6: Soft Delete
+- Campos `IsDeleted`, `DeletedAt`, `DeletedById` en Ticket
+- Query filter global para excluir eliminados
+- Eliminación lógica preserva datos
+
+### Archivos Creados
+```
+backend/Services/TicketStateService.cs
+backend/Models/TicketHistorial.cs
+backend/Migrations/*_InitialCreate.cs
+backend/Migrations/*_SyncModelChanges.cs
+```
+
+### Archivos Modificados
+```
+backend/Controllers/TicketsController.cs
+backend/Models/Ticket.cs
+backend/Data/ApplicationDbContext.cs
+backend/DTOs/TicketDtos.cs
+frontend/src/app/empleado/tickets/[id]/PageClient.tsx
+frontend/src/app/admin/tickets/[id]/PageClient.tsx
+```
+
+### Nuevos Endpoints
+| Endpoint | Método | Descripción |
+|----------|--------|-------------|
+| `/api/tickets/{id}/transiciones` | GET | Transiciones de estado permitidas |
+| `/api/tickets/{id}/historial` | GET | Historial de cambios del ticket |
+
+### Capturas de Pantalla
+Ubicación: `.playwright-mcp/captura-*.png`
+- 8 capturas documentando las nuevas funcionalidades
+
+### Plan de Implementación
+Ver `PLAN_ACCIONES_RAPIDAS.md` para detalles completos.
+
+---
+
+## Resumen de Trabajo Realizado (Sesiones Anteriores)
+
+### 1. CRUD de Usuarios (COMPLETADO Y DESPLEGADO)
 - Creado `backend/Controllers/UsuariosController.cs` con CRUD completo
 - Creado `backend/DTOs/UsuarioDtos.cs`
 - Reescrito `frontend/src/app/admin/usuarios/page.tsx` con funcionalidad completa
 - Actualizado `frontend/src/types/index.ts` con interfaces TypeScript
 
-### 2. Endpoints Faltantes (IMPLEMENTADOS - Pendiente Despliegue)
+### 2. Endpoints Faltantes (IMPLEMENTADOS)
 
 #### Comentarios en Tickets
 - Modificado `backend/Controllers/TicketsController.cs`
@@ -58,34 +139,80 @@
   - Cambio obligatorio: "Contrasena temporal"
   - Cambio voluntario: "Contrasena actual"
 
----
+### 4. Fix: Error IIS 500.35 (CORREGIDO)
 
-## Estado de Produccion
+**Problema:** HTTP Error 500.35 - ASP.NET Core does not support multiple apps in the same app pool
 
-### Endpoints que FUNCIONAN en produccion:
-- `/api/tickets` - OK
-- `/api/usuarios` - OK
-- `/api/categorias` - OK
-- `/api/empresas` - OK
-- `/api/auth/*` - OK
+**Causa:** `hostingModel="InProcess"` en web.config solo permite una app por Application Pool
 
-### Endpoints que FALTAN en produccion (404):
-- `/api/reportes/*` - Requiere despliegue
-- `/api/solicitudes/*` - Requiere despliegue
+**Solucion:**
+- Modificado `backend/web.config`
+- Modificado `deploy/web.config`
+- Cambiado `hostingModel` de `InProcess` a `OutOfProcess`
 
-**Nota:** Los nuevos controladores estan compilados pero el servidor IIS necesita reiniciar el Application Pool para cargarlos.
+```xml
+<!-- Antes -->
+hostingModel="InProcess"
+
+<!-- Despues -->
+hostingModel="OutOfProcess"
+```
 
 ---
 
 ## Archivos Listos para Despliegue
 
 - **Carpeta:** `/deploy/`
-- **ZIP:** `MDAyuda-deploy.zip`
+- **ZIP:** `MDAyuda-deploy.zip` (necesita regenerarse con web.config actualizado)
 
 ### Pasos para desplegar:
-1. Subir contenido de `deploy/` al servidor IIS
-2. Reiniciar el Application Pool en IIS
-3. Verificar que los nuevos endpoints respondan correctamente
+1. Subir contenido de `deploy/` al servidor IIS (incluye web.config corregido)
+2. El Application Pool deberia cargar la app correctamente ahora
+3. Verificar que los nuevos endpoints respondan
+
+---
+
+## Estado de Produccion (antes del despliegue)
+
+### Endpoints que FUNCIONAN:
+- `/api/tickets` - OK
+- `/api/usuarios` - OK
+- `/api/categorias` - OK
+- `/api/empresas` - OK
+- `/api/auth/*` - OK
+
+### Endpoints NUEVOS (requieren despliegue):
+- `/api/reportes/*`
+- `/api/solicitudes/*`
+- `/api/tickets/{id}/comentarios`
+
+---
+
+## Archivos Modificados en Esta Sesion
+
+### Backend
+```
+backend/Controllers/UsuariosController.cs (NUEVO)
+backend/Controllers/SolicitudesController.cs (NUEVO)
+backend/Controllers/ReportesController.cs (NUEVO)
+backend/Controllers/TicketsController.cs (MODIFICADO - comentarios)
+backend/DTOs/UsuarioDtos.cs (NUEVO)
+backend/DTOs/SolicitudDtos.cs (NUEVO)
+backend/DTOs/ComentarioDtos.cs (NUEVO)
+backend/web.config (MODIFICADO - hostingModel)
+```
+
+### Frontend
+```
+frontend/src/app/admin/usuarios/page.tsx (REESCRITO)
+frontend/src/app/cambiar-password/page.tsx (CORREGIDO)
+frontend/src/types/index.ts (MODIFICADO)
+```
+
+### Deploy
+```
+deploy/web.config (MODIFICADO - hostingModel=OutOfProcess)
+```
 
 ---
 
@@ -98,42 +225,10 @@
 
 ---
 
-## Archivos Modificados en Esta Sesion
-
-### Backend
-```
-backend/Controllers/UsuariosController.cs (NUEVO)
-backend/Controllers/SolicitudesController.cs (NUEVO)
-backend/Controllers/ReportesController.cs (NUEVO)
-backend/Controllers/TicketsController.cs (MODIFICADO - agregados comentarios)
-backend/DTOs/UsuarioDtos.cs (NUEVO)
-backend/DTOs/SolicitudDtos.cs (NUEVO)
-backend/DTOs/ComentarioDtos.cs (NUEVO)
-```
-
-### Frontend
-```
-frontend/src/app/admin/usuarios/page.tsx (REESCRITO)
-frontend/src/app/cambiar-password/page.tsx (CORREGIDO)
-frontend/src/types/index.ts (MODIFICADO)
-```
-
----
-
 ## Documentacion Generada
 
 - `VERIFICACION_CRUDS.md` - Reporte de verificacion de todos los CRUDs
 - `PROGRESO_SESION.md` - Este archivo
-
----
-
-## Proximos Pasos
-
-1. **[URGENTE]** Subir archivos de deploy al servidor de produccion
-2. **[URGENTE]** Reiniciar Application Pool en IIS
-3. Verificar nuevos endpoints funcionan en produccion
-4. Probar funcionalidad de cambiar contrasena
-5. (Opcional) Investigar problema de routing en navegacion directa
 
 ---
 
@@ -144,13 +239,33 @@ frontend/src/types/index.ts (MODIFICADO)
 
 ---
 
-## Notas Tecnicas
+## Proximos Pasos
 
-- El proyecto usa Next.js 14 con static export (`output: 'export'`)
-- Backend: ASP.NET Core 9 con Entity Framework
-- Base de datos: SQLite (desarrollo) / SQL Server (produccion)
-- Los nuevos controladores requieren restart del Application Pool porque IIS cachea los assemblies
+1. **Desplegar cambios de Acciones Rápidas:**
+   - Regenerar `deploy/` con nuevas migraciones
+   - Aplicar migraciones en SQL Server de producción
+   - Subir archivos actualizados al servidor
+
+2. **Verificar en producción:**
+   - Validación de permisos funciona
+   - Transiciones de estado validadas
+   - Historial de cambios registrándose
+   - Soft delete operativo
+
+3. **Opcional - Mejoras adicionales:**
+   - Agregar tab "Historial" en UI de detalle de ticket
+   - Filtrar botones de estado según transiciones permitidas
+   - Implementar optimistic updates completos
 
 ---
 
-*Generado por Claude Code - Sesion 2026-01-09*
+## Notas Tecnicas
+
+- **Framework:** Next.js 14 (static export) + ASP.NET Core 9
+- **Base de datos:** SQLite (dev) / SQL Server (prod)
+- **hostingModel:** Cambiado a OutOfProcess para compatibilidad con hosting compartido
+- Los nuevos controladores requieren que IIS cargue el nuevo DLL
+
+---
+
+*Generado por Claude Code - Sesión 61: Acciones Rápidas (2026-01-09)*

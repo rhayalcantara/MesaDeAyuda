@@ -389,146 +389,134 @@ export default function AdminUsuariosPage() {
 
       {/* Create/Edit Modal */}
       {showModal && (
-        <div className="fixed inset-0 z-50 overflow-y-auto">
-          <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:p-0">
-            <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onClick={handleCloseModal}></div>
-            <div className="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl transform transition-all sm:max-w-lg sm:w-full">
-              <form onSubmit={handleSubmit}>
-                <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-                  <h3 className="text-lg font-medium text-gray-900 dark:text-white">
-                    {editingUsuario ? 'Editar Usuario' : 'Nuevo Usuario'}
-                  </h3>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md">
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
+              {editingUsuario ? 'Editar Usuario' : 'Nuevo Usuario'}
+            </h2>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {formError && (
+                <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
+                  <p className="text-sm text-red-600 dark:text-red-400">{formError}</p>
                 </div>
-                <div className="px-6 py-4 space-y-4">
-                  {formError && (
-                    <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
-                      <p className="text-sm text-red-600 dark:text-red-400">{formError}</p>
-                    </div>
-                  )}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                      Nombre *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={formData.nombre}
-                      onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
-                      className="input-field"
-                      placeholder="Nombre completo"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                      Email *
-                    </label>
-                    <input
-                      type="email"
-                      required
-                      value={formData.email}
-                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                      className="input-field"
-                      placeholder="correo@ejemplo.com"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                      Rol *
-                    </label>
-                    <select
-                      required
-                      value={formData.rol}
-                      onChange={(e) => setFormData({ ...formData, rol: e.target.value as UserRole })}
-                      className="input-field"
-                    >
-                      <option value="Empleado">Empleado</option>
-                      <option value="Cliente">Cliente</option>
-                      <option value="Admin">Administrador</option>
-                    </select>
-                  </div>
-                  {(formData.rol === 'Cliente') && (
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        Empresa
-                      </label>
-                      <select
-                        value={formData.empresaId || ''}
-                        onChange={(e) => setFormData({ ...formData, empresaId: e.target.value ? parseInt(e.target.value) : null })}
-                        className="input-field"
-                      >
-                        <option value="">Sin empresa</option>
-                        {empresas.filter(e => e.activa).map((empresa) => (
-                          <option key={empresa.id} value={empresa.id}>
-                            {empresa.nombre}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  )}
-                  {editingUsuario && (
-                    <div className="flex items-center">
-                      <input
-                        type="checkbox"
-                        id="activo"
-                        checked={formData.activo}
-                        onChange={(e) => setFormData({ ...formData, activo: e.target.checked })}
-                        className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
-                      />
-                      <label htmlFor="activo" className="ml-2 block text-sm text-gray-700 dark:text-gray-300">
-                        Usuario activo
-                      </label>
-                    </div>
-                  )}
-                </div>
-                <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex justify-end space-x-3">
-                  <button
-                    type="button"
-                    onClick={handleCloseModal}
-                    className="btn-secondary"
-                    disabled={submitting}
+              )}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Nombre *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={formData.nombre}
+                  onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
+                  className="input w-full"
+                  placeholder="Nombre completo"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Email *
+                </label>
+                <input
+                  type="email"
+                  required
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  className="input w-full"
+                  placeholder="correo@ejemplo.com"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Rol *
+                </label>
+                <select
+                  required
+                  value={formData.rol}
+                  onChange={(e) => setFormData({ ...formData, rol: e.target.value as UserRole })}
+                  className="input w-full"
+                >
+                  <option value="Empleado">Empleado</option>
+                  <option value="Cliente">Cliente</option>
+                  <option value="Admin">Administrador</option>
+                </select>
+              </div>
+              {(formData.rol === 'Cliente') && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Empresa
+                  </label>
+                  <select
+                    value={formData.empresaId || ''}
+                    onChange={(e) => setFormData({ ...formData, empresaId: e.target.value ? parseInt(e.target.value) : null })}
+                    className="input w-full"
                   >
-                    Cancelar
-                  </button>
-                  <button
-                    type="submit"
-                    className="btn-primary"
-                    disabled={submitting}
-                  >
-                    {submitting ? 'Guardando...' : (editingUsuario ? 'Guardar Cambios' : 'Crear Usuario')}
-                  </button>
+                    <option value="">Sin empresa</option>
+                    {empresas.filter(e => e.activa).map((empresa) => (
+                      <option key={empresa.id} value={empresa.id}>
+                        {empresa.nombre}
+                      </option>
+                    ))}
+                  </select>
                 </div>
-              </form>
-            </div>
+              )}
+              {editingUsuario && (
+                <div className="flex items-center">
+                  <input
+                    type="checkbox"
+                    id="activo"
+                    checked={formData.activo}
+                    onChange={(e) => setFormData({ ...formData, activo: e.target.checked })}
+                    className="h-4 w-4 text-blue-600 rounded"
+                  />
+                  <label htmlFor="activo" className="ml-2 text-sm text-gray-700 dark:text-gray-300">
+                    Usuario activo
+                  </label>
+                </div>
+              )}
+              <div className="flex justify-end space-x-3 pt-4">
+                <button
+                  type="button"
+                  onClick={handleCloseModal}
+                  className="btn-secondary"
+                  disabled={submitting}
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="btn-primary"
+                  disabled={submitting}
+                >
+                  {submitting ? 'Guardando...' : (editingUsuario ? 'Guardar' : 'Crear')}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
 
       {/* Password Modal */}
       {showPasswordModal && (
-        <div className="fixed inset-0 z-50 overflow-y-auto">
-          <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:p-0">
-            <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"></div>
-            <div className="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl transform transition-all sm:max-w-md sm:w-full">
-              <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-                <h3 className="text-lg font-medium text-gray-900 dark:text-white">
-                  Contrasena Temporal
-                </h3>
-              </div>
-              <div className="px-6 py-4">
-                <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                  Se ha generado una contrasena temporal para <strong>{passwordUsuario}</strong>.
-                  El usuario debera cambiarla en su primer inicio de sesion.
-                </p>
-                <div className="bg-gray-100 dark:bg-gray-700 rounded-lg p-4">
-                  <p className="text-center font-mono text-lg text-gray-900 dark:text-white select-all">
-                    {tempPassword}
-                  </p>
-                </div>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 text-center">
-                  Haz clic para seleccionar y copiar
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md">
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
+              Contrasena Temporal
+            </h2>
+            <div className="space-y-4">
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                Se ha generado una contrasena temporal para <strong>{passwordUsuario}</strong>.
+                El usuario debera cambiarla en su primer inicio de sesion.
+              </p>
+              <div className="bg-gray-100 dark:bg-gray-700 rounded-lg p-4">
+                <p className="text-center font-mono text-lg text-gray-900 dark:text-white select-all">
+                  {tempPassword}
                 </p>
               </div>
-              <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex justify-end">
+              <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
+                Haz clic para seleccionar y copiar
+              </p>
+              <div className="flex justify-end pt-4">
                 <button
                   onClick={() => {
                     setShowPasswordModal(false);
@@ -547,38 +535,33 @@ export default function AdminUsuariosPage() {
 
       {/* Delete Confirmation Modal */}
       {showDeleteModal && deletingUsuario && (
-        <div className="fixed inset-0 z-50 overflow-y-auto">
-          <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:p-0">
-            <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onClick={() => setShowDeleteModal(false)}></div>
-            <div className="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl transform transition-all sm:max-w-md sm:w-full">
-              <div className="px-6 py-4">
-                <div className="flex items-center justify-center w-12 h-12 mx-auto bg-red-100 dark:bg-red-900 rounded-full mb-4">
-                  <svg className="h-6 w-6 text-red-600 dark:text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                  </svg>
-                </div>
-                <h3 className="text-lg font-medium text-gray-900 dark:text-white text-center mb-2">
-                  Eliminar Usuario
-                </h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400 text-center">
-                  ¿Estas seguro de que deseas eliminar a <strong>{deletingUsuario.nombre}</strong>?
-                  Esta accion no se puede deshacer.
-                </p>
-              </div>
-              <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex justify-end space-x-3">
-                <button
-                  onClick={() => setShowDeleteModal(false)}
-                  className="btn-secondary"
-                >
-                  Cancelar
-                </button>
-                <button
-                  onClick={handleConfirmDelete}
-                  className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-medium"
-                >
-                  Eliminar
-                </button>
-              </div>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md">
+            <div className="flex items-center justify-center w-12 h-12 mx-auto bg-red-100 dark:bg-red-900 rounded-full mb-4">
+              <svg className="h-6 w-6 text-red-600 dark:text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+            </div>
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white text-center mb-2">
+              Eliminar Usuario
+            </h2>
+            <p className="text-sm text-gray-600 dark:text-gray-400 text-center mb-4">
+              ¿Estas seguro de que deseas eliminar a <strong>{deletingUsuario.nombre}</strong>?
+              Esta accion no se puede deshacer.
+            </p>
+            <div className="flex justify-end space-x-3 pt-4">
+              <button
+                onClick={() => setShowDeleteModal(false)}
+                className="btn-secondary"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleConfirmDelete}
+                className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-medium"
+              >
+                Eliminar
+              </button>
             </div>
           </div>
         </div>

@@ -78,6 +78,8 @@ export default function EmpleadoTicketDetailPage() {
   const [asignando, setAsignando] = useState(false);
   const [asignarExito, setAsignarExito] = useState('');
   const [asignarError, setAsignarError] = useState('');
+  const [estadoSeleccionado, setEstadoSeleccionado] = useState<string | null>(null);
+  const [sincronizando, setSincronizando] = useState(false);
 
   useEffect(() => {
     fetchTicket();
@@ -132,6 +134,7 @@ export default function EmpleadoTicketDetailPage() {
   const handleCambiarEstado = async (nuevoEstado: string) => {
     if (!ticket || ticket.estado === nuevoEstado) return;
 
+    setEstadoSeleccionado(nuevoEstado);
     setCambiandoEstado(true);
     setEstadoError('');
     setEstadoExito('');
@@ -144,9 +147,22 @@ export default function EmpleadoTicketDetailPage() {
       fetchTicket();
       setTimeout(() => setEstadoExito(''), 3000);
     } catch (err: any) {
-      setEstadoError(err.response?.data?.message || 'Error al cambiar el estado');
+      if (err.response?.status === 409 || err.response?.data?.code === 'CONCURRENCY_CONFLICT') {
+        setEstadoError('Este ticket fue modificado por otro usuario. Los datos se actualizaran automaticamente.');
+        setSincronizando(true);
+        try {
+          await fetchTicket();
+          setEstadoExito('Datos actualizados correctamente');
+          setTimeout(() => setEstadoExito(''), 3000);
+        } finally {
+          setSincronizando(false);
+        }
+      } else {
+        setEstadoError(err.response?.data?.message || 'Error al cambiar el estado');
+      }
     } finally {
       setCambiandoEstado(false);
+      setEstadoSeleccionado(null);
     }
   };
 
@@ -163,7 +179,19 @@ export default function EmpleadoTicketDetailPage() {
       fetchTicket();
       setTimeout(() => setAsignarExito(''), 3000);
     } catch (err: any) {
-      setAsignarError(err.response?.data?.message || 'Error al asignar el ticket');
+      if (err.response?.status === 409 || err.response?.data?.code === 'CONCURRENCY_CONFLICT') {
+        setAsignarError('Este ticket fue modificado por otro usuario. Los datos se actualizaran automaticamente.');
+        setSincronizando(true);
+        try {
+          await fetchTicket();
+          setAsignarExito('Datos actualizados correctamente');
+          setTimeout(() => setAsignarExito(''), 3000);
+        } finally {
+          setSincronizando(false);
+        }
+      } else {
+        setAsignarError(err.response?.data?.message || 'Error al asignar el ticket');
+      }
     } finally {
       setAsignando(false);
     }
@@ -266,7 +294,34 @@ export default function EmpleadoTicketDetailPage() {
                 disabled={asignando}
                 className="btn-primary disabled:opacity-50"
               >
-                {asignando ? 'Asignando...' : 'Asignarme este ticket'}
+                {asignando ? (
+                  <span className="flex items-center gap-2">
+                    <svg
+                      className="animate-spin h-4 w-4"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      aria-hidden="true"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      />
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      />
+                    </svg>
+                    Asignando...
+                  </span>
+                ) : (
+                  'Asignarme este ticket'
+                )}
               </button>
             )}
           </div>
@@ -291,6 +346,32 @@ export default function EmpleadoTicketDetailPage() {
         {estadoError && (
           <div className="bg-red-50 dark:bg-red-900/50 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 px-4 py-3 rounded-lg" role="alert">
             {estadoError}
+          </div>
+        )}
+        {sincronizando && (
+          <div className="bg-blue-50 dark:bg-blue-900/50 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300 px-4 py-3 rounded-lg flex items-center gap-2" role="status">
+            <svg
+              className="animate-spin h-4 w-4"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+            >
+              <circle
+                className="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                strokeWidth="4"
+              />
+              <path
+                className="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+              />
+            </svg>
+            Actualizando datos...
           </div>
         )}
 
@@ -453,7 +534,34 @@ export default function EmpleadoTicketDetailPage() {
                           : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300'
                       } disabled:opacity-50`}
                     >
-                      {estadoLabels[estado]}
+                      {cambiandoEstado && estadoSeleccionado === estado ? (
+                        <span className="flex items-center gap-2">
+                          <svg
+                            className="animate-spin h-4 w-4"
+                            xmlns="http://www.w3.org/2000/svg"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            aria-hidden="true"
+                          >
+                            <circle
+                              className="opacity-25"
+                              cx="12"
+                              cy="12"
+                              r="10"
+                              stroke="currentColor"
+                              strokeWidth="4"
+                            />
+                            <path
+                              className="opacity-75"
+                              fill="currentColor"
+                              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                            />
+                          </svg>
+                          Cambiando...
+                        </span>
+                      ) : (
+                        estadoLabels[estado]
+                      )}
                     </button>
                   ))}
                 </div>

@@ -50,6 +50,14 @@ public class Ticket
     [Timestamp]
     public byte[]? RowVersion { get; set; }
 
+    // Soft delete fields
+    public bool IsDeleted { get; set; } = false;
+    public DateTime? DeletedAt { get; set; }
+    public int? DeletedById { get; set; }
+
+    [ForeignKey("DeletedById")]
+    public Usuario? DeletedBy { get; set; }
+
     // Navigation properties
     public ICollection<Comentario> Comentarios { get; set; } = new List<Comentario>();
     public ICollection<Archivo> Archivos { get; set; } = new List<Archivo>();

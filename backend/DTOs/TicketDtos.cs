@@ -93,3 +93,17 @@ public class TicketFilterDto
     public string OrdenarPor { get; set; } = "fecha";
     public bool OrdenAscendente { get; set; } = false;
 }
+
+public class TicketHistorialDto
+{
+    public int Id { get; set; }
+    public int TicketId { get; set; }
+    public int UsuarioId { get; set; }
+    public string? UsuarioNombre { get; set; }
+    public string TipoAccion { get; set; } = string.Empty;
+    public string? CampoModificado { get; set; }
+    public string? ValorAnterior { get; set; }
+    public string? ValorNuevo { get; set; }
+    public string? Descripcion { get; set; }
+    public DateTime FechaCambio { get; set; }
+}

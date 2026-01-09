@@ -19,6 +19,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<Archivo> Archivos { get; set; }
     public DbSet<ConfiguracionSLA> ConfiguracionesSLA { get; set; }
     public DbSet<ConfiguracionSistema> ConfiguracionesSistema { get; set; }
+    public DbSet<TicketHistorial> TicketHistoriales { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -78,6 +79,16 @@ public class ApplicationDbContext : DbContext
             .HasForeignKey(t => t.CategoriaId)
             .OnDelete(DeleteBehavior.Restrict);
 
+        // Soft delete configuration for Ticket
+        modelBuilder.Entity<Ticket>()
+            .HasOne(t => t.DeletedBy)
+            .WithMany()
+            .HasForeignKey(t => t.DeletedById)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        // Query filter global para excluir tickets eliminados
+        modelBuilder.Entity<Ticket>().HasQueryFilter(t => !t.IsDeleted);
+
         modelBuilder.Entity<Comentario>()
             .HasOne(c => c.Ticket)
             .WithMany(t => t.Comentarios)
@@ -107,5 +118,22 @@ public class ApplicationDbContext : DbContext
             .WithMany(u => u.Archivos)
             .HasForeignKey(a => a.SubidoPorId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        // TicketHistorial configuration
+        modelBuilder.Entity<TicketHistorial>(entity =>
+        {
+            entity.HasOne(h => h.Ticket)
+                .WithMany()
+                .HasForeignKey(h => h.TicketId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(h => h.Usuario)
+                .WithMany()
+                .HasForeignKey(h => h.UsuarioId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasIndex(h => h.TicketId);
+            entity.HasIndex(h => h.FechaCambio);
+        });
     }
 }

@@ -112,6 +112,9 @@ export default function AdminTicketDetailPage() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [activeTab, setActiveTab] = useState<'comentarios' | 'archivos'>('comentarios');
+  const [sincronizando, setSincronizando] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
 
   useEffect(() => {
     // AbortController to cancel pending requests when component unmounts
@@ -179,6 +182,30 @@ export default function AdminTicketDetailPage() {
     };
   }, [ticketId]);
 
+  // Function to refetch ticket data (for use after concurrency conflicts)
+  const refetchTicket = async () => {
+    try {
+      const ticketRes = await api.get(`/tickets/${ticketId}`);
+      setTicket(ticketRes.data);
+
+      try {
+        const comentariosRes = await api.get(`/tickets/${ticketId}/comentarios`);
+        setComentarios(comentariosRes.data);
+      } catch {
+        // Keep existing comentarios if fetch fails
+      }
+
+      try {
+        const archivosRes = await api.get(`/tickets/${ticketId}/archivos`);
+        setArchivos(archivosRes.data);
+      } catch {
+        // Keep existing archivos if fetch fails
+      }
+    } catch (error) {
+      console.error('Error refetching ticket:', error);
+    }
+  };
+
   const formatFileSize = (bytes: number) => {
     if (bytes < 1024) return bytes + ' B';
     if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
@@ -209,13 +236,34 @@ export default function AdminTicketDetailPage() {
 
   const handleDelete = async () => {
     setDeleting(true);
+    setErrorMessage('');
     try {
       await api.delete(`/tickets/${ticketId}`);
       router.push('/admin/tickets');
-    } catch (error) {
-      // In demo mode, just redirect
-      console.log('Demo: Ticket would be deleted');
-      router.push('/admin/tickets');
+    } catch (error: any) {
+      if (error.response?.status === 409 || error.response?.data?.code === 'CONCURRENCY_CONFLICT') {
+        setErrorMessage('Este ticket fue modificado por otro usuario. Los datos se actualizaran automaticamente.');
+        setShowDeleteModal(false);
+        setSincronizando(true);
+        try {
+          await refetchTicket();
+          setSuccessMessage('Datos actualizados correctamente');
+          setTimeout(() => setSuccessMessage(''), 3000);
+        } finally {
+          setSincronizando(false);
+          setDeleting(false);
+        }
+      } else if (error.response?.status === 404) {
+        // Ticket was deleted by another user
+        setErrorMessage('Este ticket ya fue eliminado por otro usuario.');
+        setTimeout(() => {
+          router.push('/admin/tickets');
+        }, 2000);
+      } else {
+        // In demo mode, just redirect
+        console.log('Demo: Ticket would be deleted');
+        router.push('/admin/tickets');
+      }
     }
   };
 
@@ -313,13 +361,51 @@ export default function AdminTicketDetailPage() {
               onClick={() => setShowDeleteModal(true)}
               className="btn-danger flex items-center gap-2"
             >
-              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" aria-hidden="true">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
               </svg>
               Eliminar
             </button>
           </div>
         </div>
+
+        {/* Success/Error/Sync messages */}
+        {successMessage && (
+          <div className="bg-green-50 dark:bg-green-900/50 border border-green-200 dark:border-green-800 text-green-700 dark:text-green-300 px-4 py-3 rounded-lg" role="status">
+            {successMessage}
+          </div>
+        )}
+        {errorMessage && (
+          <div className="bg-red-50 dark:bg-red-900/50 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 px-4 py-3 rounded-lg" role="alert">
+            {errorMessage}
+          </div>
+        )}
+        {sincronizando && (
+          <div className="bg-blue-50 dark:bg-blue-900/50 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300 px-4 py-3 rounded-lg flex items-center gap-2" role="status">
+            <svg
+              className="animate-spin h-4 w-4"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+            >
+              <circle
+                className="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                strokeWidth="4"
+              />
+              <path
+                className="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+              />
+            </svg>
+            Actualizando datos...
+          </div>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Ticket Details */}
@@ -584,11 +670,38 @@ export default function AdminTicketDetailPage() {
                 </button>
                 <button
                   type="button"
-                  className="btn-danger"
+                  className="btn-danger flex items-center gap-2"
                   onClick={handleDelete}
                   disabled={deleting}
                 >
-                  {deleting ? 'Eliminando...' : 'Eliminar'}
+                  {deleting ? (
+                    <>
+                      <svg
+                        className="animate-spin h-4 w-4"
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        aria-hidden="true"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        />
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                        />
+                      </svg>
+                      Eliminando...
+                    </>
+                  ) : (
+                    'Eliminar'
+                  )}
                 </button>
               </div>
             </div>

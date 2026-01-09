@@ -454,8 +454,32 @@ public class TicketsController : ControllerBase
             return NotFound(new { message = "Ticket no encontrado" });
         }
 
+        var userId = GetUserId();
+        var userRole = GetUserRole();
+
         // If no body provided, self-assign to current user
-        var empleadoId = dto?.EmpleadoId ?? GetUserId();
+        var empleadoId = dto?.EmpleadoId ?? userId;
+
+        // Validación: Si el ticket ya está asignado, solo admin puede reasignar
+        if (ticket.EmpleadoAsignadoId != null && userRole != "Admin")
+        {
+            // Excepción: un empleado puede auto-asignarse si el ticket no tiene asignado
+            // Pero si ya está asignado a otro, solo admin puede reasignar
+            if (ticket.EmpleadoAsignadoId != userId)
+            {
+                _logger.LogWarning("Empleado {UserId} intentó reasignar el ticket {TicketId} que ya está asignado a {AsignadoId}",
+                    userId, id, ticket.EmpleadoAsignadoId);
+                return StatusCode(403, new { message = "Este ticket ya está asignado. Solo un administrador puede reasignarlo." });
+            }
+        }
+
+        // Validación: Empleados solo pueden asignarse a sí mismos
+        if (userRole == "Empleado" && empleadoId != userId)
+        {
+            _logger.LogWarning("Empleado {UserId} intentó asignar el ticket {TicketId} a otro empleado {EmpleadoId}",
+                userId, id, empleadoId);
+            return StatusCode(403, new { message = "Solo puedes asignarte tickets a ti mismo" });
+        }
 
         var empleado = await _context.Usuarios.FindAsync(empleadoId);
         if (empleado == null || empleado.Rol != "Empleado" && empleado.Rol != "Admin" || !empleado.Activo)
@@ -463,7 +487,13 @@ public class TicketsController : ControllerBase
             return BadRequest(new { message = "Empleado invalido" });
         }
 
+        var empleadoAnteriorId = ticket.EmpleadoAsignadoId;
+        var empleadoAnteriorNombre = empleadoAnteriorId.HasValue
+            ? (await _context.Usuarios.FindAsync(empleadoAnteriorId))?.Nombre
+            : null;
+
         ticket.EmpleadoAsignadoId = empleadoId;
+        var estadoAnterior = ticket.Estado;
         if (ticket.Estado == "Abierto")
         {
             ticket.Estado = "EnProceso";
@@ -471,6 +501,33 @@ public class TicketsController : ControllerBase
         ticket.FechaActualizacion = DateTime.UtcNow;
 
         await _context.SaveChangesAsync();
+
+        // Registrar asignación en el historial
+        await RegistrarHistorial(
+            ticketId: id,
+            usuarioId: userId,
+            tipoAccion: "Asignacion",
+            campo: "EmpleadoAsignado",
+            valorAnterior: empleadoAnteriorNombre,
+            valorNuevo: empleado.Nombre,
+            descripcion: empleadoAnteriorId.HasValue
+                ? $"Reasignado de {empleadoAnteriorNombre} a {empleado.Nombre}"
+                : $"Asignado a {empleado.Nombre}"
+        );
+
+        // Si el estado cambió, registrar también ese cambio
+        if (estadoAnterior != ticket.Estado)
+        {
+            await RegistrarHistorial(
+                ticketId: id,
+                usuarioId: userId,
+                tipoAccion: "CambioEstado",
+                campo: "Estado",
+                valorAnterior: estadoAnterior,
+                valorNuevo: ticket.Estado,
+                descripcion: $"Estado cambiado automáticamente de {estadoAnterior} a {ticket.Estado} por asignación"
+            );
+        }
 
         _logger.LogInformation("Ticket {TicketId} assigned to employee {EmpleadoId}", id, empleadoId);
 
@@ -490,10 +547,29 @@ public class TicketsController : ControllerBase
             return NotFound(new { message = "Ticket no encontrado" });
         }
 
+        // Validación de permisos: Empleados solo pueden cambiar estado de tickets asignados a ellos
+        var userId = GetUserId();
+        var userRole = GetUserRole();
+
+        if (userRole == "Empleado" && ticket.EmpleadoAsignadoId != userId)
+        {
+            _logger.LogWarning("Empleado {UserId} intentó cambiar estado del ticket {TicketId} que no está asignado a él", userId, id);
+            return StatusCode(403, new { message = "Solo puedes cambiar el estado de tickets asignados a ti" });
+        }
+
         var validStatuses = new[] { "Abierto", "EnProceso", "EnEspera", "Resuelto", "Cerrado" };
         if (!validStatuses.Contains(dto.Estado))
         {
             return BadRequest(new { message = "Estado invalido" });
+        }
+
+        // Validar transición de estado usando la máquina de estados
+        if (!TicketStateService.IsValidTransition(ticket.Estado, dto.Estado, userRole))
+        {
+            return BadRequest(new {
+                message = TicketStateService.GetTransitionErrorMessage(ticket.Estado, dto.Estado, userRole),
+                transicionesPermitidas = TicketStateService.GetTransicionesPermitidas(ticket.Estado, userRole)
+            });
         }
 
         var previousState = ticket.Estado;
@@ -517,15 +593,26 @@ public class TicketsController : ControllerBase
 
         await _context.SaveChangesAsync();
 
+        // Registrar en el historial
+        await RegistrarHistorial(
+            ticketId: id,
+            usuarioId: userId,
+            tipoAccion: "CambioEstado",
+            campo: "Estado",
+            valorAnterior: previousState,
+            valorNuevo: dto.Estado,
+            descripcion: $"Estado cambiado de {previousState} a {dto.Estado}"
+        );
+
         _logger.LogInformation("Ticket {TicketId} status changed from {OldStatus} to {NewStatus}",
             id, previousState, dto.Estado);
 
         return Ok(new { message = "Estado actualizado exitosamente" });
     }
 
-    [HttpDelete("{id}")]
-    [Authorize(Policy = "AdminOnly")]
-    public async Task<IActionResult> DeleteTicket(int id)
+    [HttpGet("{id}/transiciones")]
+    [Authorize(Policy = "EmpleadoOrAdmin")]
+    public async Task<ActionResult<object>> GetTransicionesPermitidas(int id)
     {
         var ticket = await _context.Tickets.FindAsync(id);
         if (ticket == null)
@@ -533,12 +620,64 @@ public class TicketsController : ControllerBase
             return NotFound(new { message = "Ticket no encontrado" });
         }
 
-        _context.Tickets.Remove(ticket);
+        var userId = GetUserId();
+        var userRole = GetUserRole();
+
+        // Validar que el empleado solo pueda ver transiciones de tickets asignados a él
+        if (userRole == "Empleado" && ticket.EmpleadoAsignadoId != userId)
+        {
+            return StatusCode(403, new { message = "Solo puedes ver las transiciones de tickets asignados a ti" });
+        }
+
+        var transicionesPermitidas = TicketStateService.GetTransicionesPermitidas(ticket.Estado, userRole);
+
+        return Ok(new
+        {
+            ticketId = ticket.Id,
+            estadoActual = ticket.Estado,
+            transicionesPermitidas = transicionesPermitidas,
+            userRole = userRole
+        });
+    }
+
+    [HttpDelete("{id}")]
+    [Authorize(Policy = "AdminOnly")]
+    public async Task<IActionResult> DeleteTicket(int id)
+    {
+        // Usar IgnoreQueryFilters para poder encontrar tickets incluso si ya estan "eliminados"
+        var ticket = await _context.Tickets
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(t => t.Id == id);
+
+        if (ticket == null)
+        {
+            return NotFound(new { message = "Ticket no encontrado" });
+        }
+
+        if (ticket.IsDeleted)
+        {
+            return BadRequest(new { message = "Este ticket ya fue eliminado" });
+        }
+
+        var userId = GetUserId();
+
+        ticket.IsDeleted = true;
+        ticket.DeletedAt = DateTime.UtcNow;
+        ticket.DeletedById = userId;
+
         await _context.SaveChangesAsync();
 
-        _logger.LogInformation("Ticket {TicketId} deleted", id);
+        // Registrar eliminación en el historial
+        await RegistrarHistorial(
+            ticketId: id,
+            usuarioId: userId,
+            tipoAccion: "Eliminacion",
+            descripcion: $"Ticket eliminado (soft delete)"
+        );
 
-        return Ok(new { message = "Ticket eliminado exitosamente" });
+        _logger.LogInformation("Ticket {TicketId} eliminado (soft delete) por usuario {UserId}", id, userId);
+
+        return Ok(new { message = "Ticket eliminado correctamente" });
     }
 
     [HttpGet("estadisticas")]
@@ -713,7 +852,59 @@ public class TicketsController : ControllerBase
         });
     }
 
+    // ==================== HISTORIAL ====================
+
+    [HttpGet("{id}/historial")]
+    [Authorize(Policy = "EmpleadoOrAdmin")]
+    public async Task<ActionResult<List<TicketHistorialDto>>> GetHistorial(int id)
+    {
+        var ticket = await _context.Tickets.FindAsync(id);
+        if (ticket == null)
+        {
+            return NotFound(new { message = "Ticket no encontrado" });
+        }
+
+        var historial = await _context.TicketHistoriales
+            .Include(h => h.Usuario)
+            .Where(h => h.TicketId == id)
+            .OrderByDescending(h => h.FechaCambio)
+            .Select(h => new TicketHistorialDto
+            {
+                Id = h.Id,
+                TicketId = h.TicketId,
+                UsuarioId = h.UsuarioId,
+                UsuarioNombre = h.Usuario!.Nombre,
+                TipoAccion = h.TipoAccion,
+                CampoModificado = h.CampoModificado,
+                ValorAnterior = h.ValorAnterior,
+                ValorNuevo = h.ValorNuevo,
+                Descripcion = h.Descripcion,
+                FechaCambio = h.FechaCambio
+            })
+            .ToListAsync();
+
+        return Ok(historial);
+    }
+
     // ==================== HELPERS ====================
+
+    private async Task RegistrarHistorial(int ticketId, int usuarioId, string tipoAccion,
+        string? campo = null, string? valorAnterior = null, string? valorNuevo = null, string? descripcion = null)
+    {
+        var historial = new TicketHistorial
+        {
+            TicketId = ticketId,
+            UsuarioId = usuarioId,
+            TipoAccion = tipoAccion,
+            CampoModificado = campo,
+            ValorAnterior = valorAnterior,
+            ValorNuevo = valorNuevo,
+            Descripcion = descripcion,
+            FechaCambio = DateTime.UtcNow
+        };
+        _context.TicketHistoriales.Add(historial);
+        await _context.SaveChangesAsync();
+    }
 
     private async Task NotifyEmployeesAboutNewTicket(Ticket ticket)
     {

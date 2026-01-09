@@ -15,12 +15,12 @@ namespace MDAyuda.API.Migrations
                 name: "Categorias",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    Nombre = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
-                    Descripcion = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
-                    Activa = table.Column<bool>(type: "bit", nullable: false),
-                    FechaCreacion = table.Column<DateTime>(type: "datetime2", nullable: false)
+                    Id = table.Column<int>(type: "INTEGER", nullable: false)
+                        .Annotation("Sqlite:Autoincrement", true),
+                    Nombre = table.Column<string>(type: "TEXT", maxLength: 100, nullable: false),
+                    Descripcion = table.Column<string>(type: "TEXT", maxLength: 500, nullable: true),
+                    Activa = table.Column<bool>(type: "INTEGER", nullable: false),
+                    FechaCreacion = table.Column<DateTime>(type: "TEXT", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -31,11 +31,11 @@ namespace MDAyuda.API.Migrations
                 name: "ConfiguracionesSistema",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    Clave = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
-                    Valor = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
-                    Descripcion = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true)
+                    Id = table.Column<int>(type: "INTEGER", nullable: false)
+                        .Annotation("Sqlite:Autoincrement", true),
+                    Clave = table.Column<string>(type: "TEXT", maxLength: 100, nullable: false),
+                    Valor = table.Column<string>(type: "TEXT", maxLength: 500, nullable: false),
+                    Descripcion = table.Column<string>(type: "TEXT", maxLength: 200, nullable: true)
                 },
                 constraints: table =>
                 {
@@ -46,11 +46,11 @@ namespace MDAyuda.API.Migrations
                 name: "ConfiguracionesSLA",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    Prioridad = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: false),
-                    TiempoRespuestaHoras = table.Column<int>(type: "int", nullable: false),
-                    TiempoResolucionHoras = table.Column<int>(type: "int", nullable: false)
+                    Id = table.Column<int>(type: "INTEGER", nullable: false)
+                        .Annotation("Sqlite:Autoincrement", true),
+                    Prioridad = table.Column<string>(type: "TEXT", maxLength: 10, nullable: false),
+                    TiempoRespuestaHoras = table.Column<int>(type: "INTEGER", nullable: false),
+                    TiempoResolucionHoras = table.Column<int>(type: "INTEGER", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -61,15 +61,15 @@ namespace MDAyuda.API.Migrations
                 name: "Empresas",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    Nombre = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
-                    ConfigVisibilidadTickets = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
-                    LogoUrl = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
-                    ColorPrimario = table.Column<string>(type: "nvarchar(7)", maxLength: 7, nullable: true),
-                    Activa = table.Column<bool>(type: "bit", nullable: false),
-                    FechaCreacion = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    FechaActualizacion = table.Column<DateTime>(type: "datetime2", nullable: false)
+                    Id = table.Column<int>(type: "INTEGER", nullable: false)
+                        .Annotation("Sqlite:Autoincrement", true),
+                    Nombre = table.Column<string>(type: "TEXT", maxLength: 100, nullable: false),
+                    ConfigVisibilidadTickets = table.Column<string>(type: "TEXT", maxLength: 20, nullable: false),
+                    LogoUrl = table.Column<string>(type: "TEXT", maxLength: 500, nullable: true),
+                    ColorPrimario = table.Column<string>(type: "TEXT", maxLength: 7, nullable: true),
+                    Activa = table.Column<bool>(type: "INTEGER", nullable: false),
+                    FechaCreacion = table.Column<DateTime>(type: "TEXT", nullable: false),
+                    FechaActualizacion = table.Column<DateTime>(type: "TEXT", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -80,18 +80,18 @@ namespace MDAyuda.API.Migrations
                 name: "Usuarios",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    Email = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: false),
-                    PasswordHash = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
-                    Nombre = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
-                    Rol = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
-                    EmpresaId = table.Column<int>(type: "int", nullable: true),
-                    Activo = table.Column<bool>(type: "bit", nullable: false),
-                    RequiereCambioPassword = table.Column<bool>(type: "bit", nullable: false),
-                    FechaCreacion = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    FechaActualizacion = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    UltimoAcceso = table.Column<DateTime>(type: "datetime2", nullable: true)
+                    Id = table.Column<int>(type: "INTEGER", nullable: false)
+                        .Annotation("Sqlite:Autoincrement", true),
+                    Email = table.Column<string>(type: "TEXT", maxLength: 255, nullable: false),
+                    PasswordHash = table.Column<string>(type: "TEXT", maxLength: 500, nullable: false),
+                    Nombre = table.Column<string>(type: "TEXT", maxLength: 100, nullable: false),
+                    Rol = table.Column<string>(type: "TEXT", maxLength: 20, nullable: false),
+                    EmpresaId = table.Column<int>(type: "INTEGER", nullable: true),
+                    Activo = table.Column<bool>(type: "INTEGER", nullable: false),
+                    RequiereCambioPassword = table.Column<bool>(type: "INTEGER", nullable: false),
+                    FechaCreacion = table.Column<DateTime>(type: "TEXT", nullable: false),
+                    FechaActualizacion = table.Column<DateTime>(type: "TEXT", nullable: false),
+                    UltimoAcceso = table.Column<DateTime>(type: "TEXT", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -108,15 +108,15 @@ namespace MDAyuda.API.Migrations
                 name: "SolicitudesRegistro",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    Email = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: false),
-                    Nombre = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
-                    EmpresaId = table.Column<int>(type: "int", nullable: false),
-                    Estado = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
-                    FechaSolicitud = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    FechaResolucion = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    AprobadoPorId = table.Column<int>(type: "int", nullable: true)
+                    Id = table.Column<int>(type: "INTEGER", nullable: false)
+                        .Annotation("Sqlite:Autoincrement", true),
+                    Email = table.Column<string>(type: "TEXT", maxLength: 255, nullable: false),
+                    Nombre = table.Column<string>(type: "TEXT", maxLength: 100, nullable: false),
+                    EmpresaId = table.Column<int>(type: "INTEGER", nullable: false),
+                    Estado = table.Column<string>(type: "TEXT", maxLength: 20, nullable: false),
+                    FechaSolicitud = table.Column<DateTime>(type: "TEXT", nullable: false),
+                    FechaResolucion = table.Column<DateTime>(type: "TEXT", nullable: true),
+                    AprobadoPorId = table.Column<int>(type: "INTEGER", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -139,19 +139,22 @@ namespace MDAyuda.API.Migrations
                 name: "Tickets",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    Titulo = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
-                    Descripcion = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    ClienteId = table.Column<int>(type: "int", nullable: false),
-                    EmpleadoAsignadoId = table.Column<int>(type: "int", nullable: true),
-                    CategoriaId = table.Column<int>(type: "int", nullable: false),
-                    Prioridad = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: false),
-                    Estado = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
-                    FechaCreacion = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    FechaActualizacion = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    FechaPrimeraRespuesta = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    FechaResolucion = table.Column<DateTime>(type: "datetime2", nullable: true)
+                    Id = table.Column<int>(type: "INTEGER", nullable: false)
+                        .Annotation("Sqlite:Autoincrement", true),
+                    Titulo = table.Column<string>(type: "TEXT", maxLength: 200, nullable: false),
+                    Descripcion = table.Column<string>(type: "TEXT", nullable: false),
+                    ClienteId = table.Column<int>(type: "INTEGER", nullable: false),
+                    EmpleadoAsignadoId = table.Column<int>(type: "INTEGER", nullable: true),
+                    CategoriaId = table.Column<int>(type: "INTEGER", nullable: false),
+                    Prioridad = table.Column<string>(type: "TEXT", maxLength: 10, nullable: false),
+                    Estado = table.Column<string>(type: "TEXT", maxLength: 20, nullable: false),
+                    FechaCreacion = table.Column<DateTime>(type: "TEXT", nullable: false),
+                    FechaActualizacion = table.Column<DateTime>(type: "TEXT", nullable: false),
+                    FechaPrimeraRespuesta = table.Column<DateTime>(type: "TEXT", nullable: true),
+                    FechaResolucion = table.Column<DateTime>(type: "TEXT", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "INTEGER", nullable: false),
+                    DeletedAt = table.Column<DateTime>(type: "TEXT", nullable: true),
+                    DeletedById = table.Column<int>(type: "INTEGER", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -169,6 +172,12 @@ namespace MDAyuda.API.Migrations
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
+                        name: "FK_Tickets_Usuarios_DeletedById",
+                        column: x => x.DeletedById,
+                        principalTable: "Usuarios",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.SetNull);
+                    table.ForeignKey(
                         name: "FK_Tickets_Usuarios_EmpleadoAsignadoId",
                         column: x => x.EmpleadoAsignadoId,
                         principalTable: "Usuarios",
@@ -180,12 +189,12 @@ namespace MDAyuda.API.Migrations
                 name: "Comentarios",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    TicketId = table.Column<int>(type: "int", nullable: false),
-                    UsuarioId = table.Column<int>(type: "int", nullable: false),
-                    Texto = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    FechaCreacion = table.Column<DateTime>(type: "datetime2", nullable: false)
+                    Id = table.Column<int>(type: "INTEGER", nullable: false)
+                        .Annotation("Sqlite:Autoincrement", true),
+                    TicketId = table.Column<int>(type: "INTEGER", nullable: false),
+                    UsuarioId = table.Column<int>(type: "INTEGER", nullable: false),
+                    Texto = table.Column<string>(type: "TEXT", nullable: false),
+                    FechaCreacion = table.Column<DateTime>(type: "TEXT", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -205,19 +214,51 @@ namespace MDAyuda.API.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "TicketHistoriales",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "INTEGER", nullable: false)
+                        .Annotation("Sqlite:Autoincrement", true),
+                    TicketId = table.Column<int>(type: "INTEGER", nullable: false),
+                    UsuarioId = table.Column<int>(type: "INTEGER", nullable: false),
+                    TipoAccion = table.Column<string>(type: "TEXT", maxLength: 50, nullable: false),
+                    CampoModificado = table.Column<string>(type: "TEXT", maxLength: 50, nullable: true),
+                    ValorAnterior = table.Column<string>(type: "TEXT", maxLength: 100, nullable: true),
+                    ValorNuevo = table.Column<string>(type: "TEXT", maxLength: 100, nullable: true),
+                    Descripcion = table.Column<string>(type: "TEXT", maxLength: 500, nullable: true),
+                    FechaCambio = table.Column<DateTime>(type: "TEXT", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_TicketHistoriales", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_TicketHistoriales_Tickets_TicketId",
+                        column: x => x.TicketId,
+                        principalTable: "Tickets",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_TicketHistoriales_Usuarios_UsuarioId",
+                        column: x => x.UsuarioId,
+                        principalTable: "Usuarios",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Archivos",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    TicketId = table.Column<int>(type: "int", nullable: false),
-                    ComentarioId = table.Column<int>(type: "int", nullable: true),
-                    NombreOriginal = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: false),
-                    NombreAlmacenado = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: false),
-                    TipoMime = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
-                    Tamanio = table.Column<long>(type: "bigint", nullable: false),
-                    SubidoPorId = table.Column<int>(type: "int", nullable: false),
-                    FechaSubida = table.Column<DateTime>(type: "datetime2", nullable: false)
+                    Id = table.Column<int>(type: "INTEGER", nullable: false)
+                        .Annotation("Sqlite:Autoincrement", true),
+                    TicketId = table.Column<int>(type: "INTEGER", nullable: false),
+                    ComentarioId = table.Column<int>(type: "INTEGER", nullable: true),
+                    NombreOriginal = table.Column<string>(type: "TEXT", maxLength: 255, nullable: false),
+                    NombreAlmacenado = table.Column<string>(type: "TEXT", maxLength: 255, nullable: false),
+                    TipoMime = table.Column<string>(type: "TEXT", maxLength: 100, nullable: false),
+                    Tamanio = table.Column<long>(type: "INTEGER", nullable: false),
+                    SubidoPorId = table.Column<int>(type: "INTEGER", nullable: false),
+                    FechaSubida = table.Column<DateTime>(type: "TEXT", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -290,6 +331,21 @@ namespace MDAyuda.API.Migrations
                 column: "EmpresaId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_TicketHistoriales_FechaCambio",
+                table: "TicketHistoriales",
+                column: "FechaCambio");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_TicketHistoriales_TicketId",
+                table: "TicketHistoriales",
+                column: "TicketId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_TicketHistoriales_UsuarioId",
+                table: "TicketHistoriales",
+                column: "UsuarioId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Tickets_CategoriaId",
                 table: "Tickets",
                 column: "CategoriaId");
@@ -298,6 +354,11 @@ namespace MDAyuda.API.Migrations
                 name: "IX_Tickets_ClienteId",
                 table: "Tickets",
                 column: "ClienteId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Tickets_DeletedById",
+                table: "Tickets",
+                column: "DeletedById");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Tickets_EmpleadoAsignadoId",
@@ -330,6 +391,9 @@ namespace MDAyuda.API.Migrations
 
             migrationBuilder.DropTable(
                 name: "SolicitudesRegistro");
+
+            migrationBuilder.DropTable(
+                name: "TicketHistoriales");
 
             migrationBuilder.DropTable(
                 name: "Comentarios");
