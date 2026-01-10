@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/context/ThemeContext';
+import { useSystemTheme } from '@/context/SystemThemeContext';
 import {
   Bars3Icon,
   MoonIcon,
@@ -20,6 +21,7 @@ interface HeaderProps {
 export default function Header({ onToggleSidebar }: HeaderProps) {
   const { user, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
+  const { systemTheme } = useSystemTheme();
   const [showUserMenu, setShowUserMenu] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -53,8 +55,11 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
           </button>
 
           <Link href="/" className="flex items-center gap-2">
-            <span className="text-xl font-bold text-primary-600 dark:text-primary-400">
-              MDAyuda
+            <span
+              className="text-xl font-bold"
+              style={{ color: 'var(--color-primary)' }}
+            >
+              {systemTheme.nombreSistema}
             </span>
           </Link>
         </div>
@@ -98,7 +103,13 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
                   <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
                     {user?.email}
                   </p>
-                  <span className="inline-block mt-1 px-2 py-0.5 text-xs font-medium rounded-full bg-primary-100 text-primary-800 dark:bg-primary-900 dark:text-primary-200">
+                  <span
+                    className="inline-block mt-1 px-2 py-0.5 text-xs font-medium rounded-full"
+                    style={{
+                      backgroundColor: 'var(--color-primary-100)',
+                      color: 'var(--color-primary-700)',
+                    }}
+                  >
                     {user?.rol}
                   </span>
                 </div>

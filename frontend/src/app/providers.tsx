@@ -3,6 +3,7 @@
 import { ReactNode, useEffect, useState } from 'react';
 import { AuthProvider } from '@/context/AuthContext';
 import { ThemeProvider } from '@/context/ThemeContext';
+import { SystemThemeProvider } from '@/context/SystemThemeContext';
 
 export function Providers({ children }: { children: ReactNode }) {
   const [mounted, setMounted] = useState(false);
@@ -17,7 +18,9 @@ export function Providers({ children }: { children: ReactNode }) {
 
   return (
     <ThemeProvider>
-      <AuthProvider>{children}</AuthProvider>
+      <SystemThemeProvider>
+        <AuthProvider>{children}</AuthProvider>
+      </SystemThemeProvider>
     </ThemeProvider>
   );
 }

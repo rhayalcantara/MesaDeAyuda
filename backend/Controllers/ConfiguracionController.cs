@@ -133,6 +133,29 @@ public class ConfiguracionController : ControllerBase
     }
 
     /// <summary>
+    /// Get theme/branding settings (public endpoint for dynamic theming)
+    /// </summary>
+    [HttpGet("tema")]
+    [AllowAnonymous]
+    public async Task<ActionResult<object>> GetThemeSettings()
+    {
+        var configs = await _context.ConfiguracionesSistema
+            .Where(c => c.Clave == "ColorPrimario" ||
+                       c.Clave == "ColorSecundario" ||
+                       c.Clave == "NombreSistema" ||
+                       c.Clave == "LogoUrl")
+            .ToDictionaryAsync(c => c.Clave, c => c.Valor);
+
+        return Ok(new
+        {
+            colorPrimario = configs.GetValueOrDefault("ColorPrimario", "#2563eb"),
+            colorSecundario = configs.GetValueOrDefault("ColorSecundario", "#64748b"),
+            nombreSistema = configs.GetValueOrDefault("NombreSistema", "MDAyuda"),
+            logoUrl = configs.GetValueOrDefault("LogoUrl", "")
+        });
+    }
+
+    /// <summary>
     /// Update a system setting
     /// </summary>
     [HttpPut("sistema/{id}")]
