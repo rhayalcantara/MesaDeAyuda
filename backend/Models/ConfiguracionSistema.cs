@@ -11,7 +11,6 @@ public class ConfiguracionSistema
     [MaxLength(100)]
     public string Clave { get; set; } = string.Empty;
 
-    [Required]
     [MaxLength(500)]
     public string Valor { get; set; } = string.Empty;
 
