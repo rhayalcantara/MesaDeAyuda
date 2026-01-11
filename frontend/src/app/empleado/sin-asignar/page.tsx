@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { MainLayout } from '@/components/layout';
 import Link from 'next/link';
+import api from '@/lib/api';
 
 interface Ticket {
   id: number;
@@ -25,11 +26,8 @@ export default function EmpleadoSinAsignarPage() {
 
   const fetchTicketsSinAsignar = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/tickets/sin-asignar');
-      if (response.ok) {
-        const data = await response.json();
-        setTickets(data);
-      }
+      const response = await api.get('/tickets/sin-asignar');
+      setTickets(response.data);
     } catch (error) {
       console.error('Error fetching tickets sin asignar:', error);
     } finally {
@@ -40,15 +38,9 @@ export default function EmpleadoSinAsignarPage() {
   const handleAsignarme = async (ticketId: number) => {
     setAsignando(ticketId);
     try {
-      const response = await fetch(`http://localhost:5000/api/tickets/${ticketId}/asignar`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-      });
-
-      if (response.ok) {
-        // Remove from list after assignment
-        setTickets(tickets.filter(t => t.id !== ticketId));
-      }
+      await api.put(`/tickets/${ticketId}/asignar`);
+      // Remove from list after assignment
+      setTickets(tickets.filter(t => t.id !== ticketId));
     } catch (error) {
       console.error('Error asignando ticket:', error);
     } finally {

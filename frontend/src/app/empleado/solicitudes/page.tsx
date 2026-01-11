@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { MainLayout } from '@/components/layout';
+import api from '@/lib/api';
 
 interface SolicitudRegistro {
   id: number;
@@ -29,11 +30,8 @@ export default function EmpleadoSolicitudesPage() {
       const params = new URLSearchParams();
       if (filtroEstado) params.append('estado', filtroEstado);
 
-      const response = await fetch(`http://localhost:5000/api/solicitudes-registro?${params}`);
-      if (response.ok) {
-        const data = await response.json();
-        setSolicitudes(data);
-      }
+      const response = await api.get(`/solicitudes-registro?${params}`);
+      setSolicitudes(response.data);
     } catch (error) {
       console.error('Error fetching solicitudes:', error);
     } finally {
@@ -43,14 +41,9 @@ export default function EmpleadoSolicitudesPage() {
 
   const handleAprobar = async (id: number) => {
     try {
-      const response = await fetch(`http://localhost:5000/api/solicitudes-registro/${id}/aprobar`, {
-        method: 'PUT',
-      });
-
-      if (response.ok) {
-        fetchSolicitudes();
-        alert('Solicitud aprobada. Se ha enviado un correo con las credenciales temporales.');
-      }
+      await api.put(`/solicitudes-registro/${id}/aprobar`);
+      fetchSolicitudes();
+      alert('Solicitud aprobada. Se ha enviado un correo con las credenciales temporales.');
     } catch (error) {
       console.error('Error aprobando solicitud:', error);
     }
@@ -60,13 +53,8 @@ export default function EmpleadoSolicitudesPage() {
     if (!confirm('Esta seguro de rechazar esta solicitud?')) return;
 
     try {
-      const response = await fetch(`http://localhost:5000/api/solicitudes-registro/${id}/rechazar`, {
-        method: 'PUT',
-      });
-
-      if (response.ok) {
-        fetchSolicitudes();
-      }
+      await api.put(`/solicitudes-registro/${id}/rechazar`);
+      fetchSolicitudes();
     } catch (error) {
       console.error('Error rechazando solicitud:', error);
     }

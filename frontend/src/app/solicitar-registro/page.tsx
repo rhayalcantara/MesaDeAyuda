@@ -1,17 +1,14 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useTheme } from '@/context/ThemeContext';
+import api from '@/lib/api';
 
-// List of "existing" emails for demo purposes (simulating database)
-const EXISTING_EMAILS = [
-  'admin@mdayuda.com',
-  'empleado@mdayuda.com',
-  'cliente@demo.com',
-  'juan.perez@empresa.com',
-  'maria.garcia@empresa.com',
-];
+interface Empresa {
+  id: number;
+  nombre: string;
+}
 
 export default function SolicitarRegistroPage() {
   const { theme, toggleTheme } = useTheme();
@@ -23,13 +20,31 @@ export default function SolicitarRegistroPage() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
+  const [empresas, setEmpresas] = useState<Empresa[]>([]);
+  const [loadingEmpresas, setLoadingEmpresas] = useState(true);
 
-  // Demo empresas
-  const empresas = [
-    { id: 1, nombre: 'Empresa Demo' },
-    { id: 2, nombre: 'Tech Solutions' },
-    { id: 3, nombre: 'Comercial ABC' },
-  ];
+  // Cargar empresas activas de la API
+  useEffect(() => {
+    const fetchEmpresas = async () => {
+      try {
+        const response = await api.get('/empresas/activas');
+        setEmpresas(response.data);
+      } catch (error) {
+        console.error('Error al cargar empresas:', error);
+        // Si falla, intentar con el endpoint normal
+        try {
+          const response = await api.get('/empresas');
+          const activas = response.data.filter((e: Empresa & { activa?: boolean }) => e.activa !== false);
+          setEmpresas(activas);
+        } catch {
+          setEmpresas([]);
+        }
+      } finally {
+        setLoadingEmpresas(false);
+      }
+    };
+    fetchEmpresas();
+  }, []);
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
@@ -46,8 +61,6 @@ export default function SolicitarRegistroPage() {
       newErrors.email = 'El correo electronico es requerido';
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
       newErrors.email = 'Ingrese un correo electronico valido';
-    } else if (EXISTING_EMAILS.includes(formData.email.toLowerCase())) {
-      newErrors.email = 'Este correo electronico ya esta registrado en el sistema. Si olvido su contrasena, puede solicitar una nueva desde la pagina de inicio de sesion.';
     }
 
     // Empresa validation
@@ -62,6 +75,7 @@ export default function SolicitarRegistroPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSuccessMessage('');
+    setErrors({});
 
     if (!validateForm()) {
       return;
@@ -69,14 +83,25 @@ export default function SolicitarRegistroPage() {
 
     setIsLoading(true);
 
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    try {
+      await api.post('/solicitudes', {
+        nombre: formData.nombre,
+        email: formData.email,
+        empresaId: parseInt(formData.empresaId)
+      });
 
-    setIsLoading(false);
-    setSuccessMessage('Su solicitud de registro ha sido enviada. Un empleado la revisara y le enviara sus credenciales por correo electronico.');
-
-    // Clear form
-    setFormData({ nombre: '', email: '', empresaId: '' });
+      setSuccessMessage('Su solicitud de registro ha sido enviada. Un empleado la revisara y le enviara sus credenciales por correo electronico.');
+      setFormData({ nombre: '', email: '', empresaId: '' });
+    } catch (error: unknown) {
+      const err = error as { response?: { data?: { message?: string } } };
+      if (err.response?.data?.message) {
+        setErrors({ general: err.response.data.message });
+      } else {
+        setErrors({ general: 'Error al enviar la solicitud. Por favor intente mas tarde.' });
+      }
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -121,17 +146,15 @@ export default function SolicitarRegistroPage() {
           </p>
         </div>
 
-        {/* Demo notice */}
-        <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 rounded-lg p-4">
-          <h3 className="text-sm font-medium text-blue-800 dark:text-blue-200 mb-2">
-            Correos ya registrados (para pruebas):
-          </h3>
-          <ul className="text-xs text-blue-700 dark:text-blue-300 space-y-1">
-            {EXISTING_EMAILS.map(email => (
-              <li key={email}>• {email}</li>
-            ))}
-          </ul>
-        </div>
+        {/* Error general */}
+        {errors.general && (
+          <div
+            className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded-lg p-4"
+            role="alert"
+          >
+            <p className="text-sm text-red-700 dark:text-red-300">{errors.general}</p>
+          </div>
+        )}
 
         {/* Success message */}
         {successMessage && (
@@ -225,15 +248,18 @@ export default function SolicitarRegistroPage() {
                 required
                 value={formData.empresaId}
                 onChange={handleChange}
+                disabled={loadingEmpresas}
                 className={`mt-1 appearance-none relative block w-full px-3 py-2 border ${
                   errors.empresaId
                     ? 'border-red-500 dark:border-red-500'
                     : 'border-gray-300 dark:border-gray-600'
-                } text-gray-900 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white dark:bg-gray-800`}
+                } text-gray-900 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white dark:bg-gray-800 disabled:opacity-50`}
                 aria-invalid={errors.empresaId ? 'true' : 'false'}
                 aria-describedby={errors.empresaId ? 'empresa-error' : undefined}
               >
-                <option value="">Seleccione una empresa</option>
+                <option value="">
+                  {loadingEmpresas ? 'Cargando empresas...' : 'Seleccione una empresa'}
+                </option>
                 {empresas.map(empresa => (
                   <option key={empresa.id} value={empresa.id}>
                     {empresa.nombre}

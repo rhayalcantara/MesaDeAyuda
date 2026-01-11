@@ -95,20 +95,20 @@ public class TicketsController : ControllerBase
                 Titulo = t.Titulo,
                 Descripcion = t.Descripcion,
                 ClienteId = t.ClienteId,
-                ClienteNombre = t.Cliente!.Nombre,
-                ClienteEmail = t.Cliente.Email,
+                ClienteNombre = t.Cliente != null ? t.Cliente.Nombre : "Sin cliente",
+                ClienteEmail = t.Cliente != null ? t.Cliente.Email : null,
                 EmpleadoAsignadoId = t.EmpleadoAsignadoId,
                 EmpleadoAsignadoNombre = t.EmpleadoAsignado != null ? t.EmpleadoAsignado.Nombre : null,
                 CategoriaId = t.CategoriaId,
-                CategoriaNombre = t.Categoria!.Nombre,
+                CategoriaNombre = t.Categoria != null ? t.Categoria.Nombre : "Sin categoría",
                 Prioridad = t.Prioridad,
                 Estado = t.Estado,
                 FechaCreacion = t.FechaCreacion,
                 FechaActualizacion = t.FechaActualizacion,
                 FechaPrimeraRespuesta = t.FechaPrimeraRespuesta,
                 FechaResolucion = t.FechaResolucion,
-                ComentariosCount = t.Comentarios.Count,
-                ArchivosCount = t.Archivos.Count
+                ComentariosCount = t.Comentarios != null ? t.Comentarios.Count : 0,
+                ArchivosCount = t.Archivos != null ? t.Archivos.Count : 0
             })
             .ToListAsync();
 
@@ -183,17 +183,17 @@ public class TicketsController : ControllerBase
                 Titulo = t.Titulo,
                 Descripcion = t.Descripcion,
                 ClienteId = t.ClienteId,
-                ClienteNombre = t.Cliente!.Nombre,
+                ClienteNombre = t.Cliente != null ? t.Cliente.Nombre : "Sin cliente",
                 EmpleadoAsignadoId = t.EmpleadoAsignadoId,
                 EmpleadoAsignadoNombre = t.EmpleadoAsignado != null ? t.EmpleadoAsignado.Nombre : null,
                 CategoriaId = t.CategoriaId,
-                CategoriaNombre = t.Categoria!.Nombre,
+                CategoriaNombre = t.Categoria != null ? t.Categoria.Nombre : "Sin categoría",
                 Prioridad = t.Prioridad,
                 Estado = t.Estado,
                 FechaCreacion = t.FechaCreacion,
                 FechaActualizacion = t.FechaActualizacion,
-                ComentariosCount = t.Comentarios.Count,
-                ArchivosCount = t.Archivos.Count
+                ComentariosCount = t.Comentarios != null ? t.Comentarios.Count : 0,
+                ArchivosCount = t.Archivos != null ? t.Archivos.Count : 0
             })
             .ToListAsync();
 
@@ -224,9 +224,9 @@ public class TicketsController : ControllerBase
                 Titulo = t.Titulo,
                 Descripcion = t.Descripcion,
                 ClienteId = t.ClienteId,
-                ClienteNombre = t.Cliente!.Nombre,
+                ClienteNombre = t.Cliente != null ? t.Cliente.Nombre : "Sin cliente",
                 CategoriaId = t.CategoriaId,
-                CategoriaNombre = t.Categoria!.Nombre,
+                CategoriaNombre = t.Categoria != null ? t.Categoria.Nombre : "Sin categoría",
                 Prioridad = t.Prioridad,
                 Estado = t.Estado,
                 FechaCreacion = t.FechaCreacion

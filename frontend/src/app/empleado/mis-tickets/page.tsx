@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { MainLayout } from '@/components/layout';
 import { useAuth } from '@/context/AuthContext';
 import Link from 'next/link';
+import api from '@/lib/api';
 
 interface Ticket {
   id: number;
@@ -32,11 +33,8 @@ export default function EmpleadoMisTicketsPage() {
       const params = new URLSearchParams();
       if (filtroEstado) params.append('estado', filtroEstado);
 
-      const response = await fetch(`http://localhost:5000/api/tickets/mis-tickets?${params}`);
-      if (response.ok) {
-        const data = await response.json();
-        setTickets(data);
-      }
+      const response = await api.get(`/tickets/mis-tickets?${params}`);
+      setTickets(response.data.items || response.data);
     } catch (error) {
       console.error('Error fetching mis tickets:', error);
     } finally {

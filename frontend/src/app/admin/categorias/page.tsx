@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { MainLayout } from '@/components/layout';
+import api from '@/lib/api';
 
 interface Categoria {
   id: number;
@@ -28,11 +29,8 @@ export default function AdminCategoriasPage() {
 
   const fetchCategorias = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/categorias');
-      if (response.ok) {
-        const data = await response.json();
-        setCategorias(data);
-      }
+      const response = await api.get('/categorias');
+      setCategorias(response.data);
     } catch (error) {
       console.error('Error fetching categorias:', error);
     } finally {
@@ -43,22 +41,14 @@ export default function AdminCategoriasPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const url = editingCategoria
-        ? `http://localhost:5000/api/categorias/${editingCategoria.id}`
-        : 'http://localhost:5000/api/categorias';
-      const method = editingCategoria ? 'PUT' : 'POST';
-
-      const response = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
-      });
-
-      if (response.ok) {
-        fetchCategorias();
-        setShowModal(false);
-        resetForm();
+      if (editingCategoria) {
+        await api.put(`/categorias/${editingCategoria.id}`, formData);
+      } else {
+        await api.post('/categorias', formData);
       }
+      fetchCategorias();
+      setShowModal(false);
+      resetForm();
     } catch (error) {
       console.error('Error saving categoria:', error);
     }
@@ -76,18 +66,11 @@ export default function AdminCategoriasPage() {
 
   const handleToggleActive = async (categoria: Categoria) => {
     try {
-      const response = await fetch(`http://localhost:5000/api/categorias/${categoria.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...categoria,
-          activa: !categoria.activa,
-        }),
+      await api.put(`/categorias/${categoria.id}`, {
+        ...categoria,
+        activa: !categoria.activa,
       });
-
-      if (response.ok) {
-        fetchCategorias();
-      }
+      fetchCategorias();
     } catch (error) {
       console.error('Error toggling categoria:', error);
     }
@@ -97,13 +80,8 @@ export default function AdminCategoriasPage() {
     if (!confirm('Esta seguro de eliminar esta categoria?')) return;
 
     try {
-      const response = await fetch(`http://localhost:5000/api/categorias/${id}`, {
-        method: 'DELETE',
-      });
-
-      if (response.ok) {
-        fetchCategorias();
-      }
+      await api.delete(`/categorias/${id}`);
+      fetchCategorias();
     } catch (error) {
       console.error('Error deleting categoria:', error);
     }

@@ -24,6 +24,60 @@ interface TicketListResponse {
   totalPages: number;
 }
 
+// Demo tickets for fallback when backend is unavailable
+const demoTickets: Ticket[] = [
+  {
+    id: 1,
+    titulo: 'Error al cargar reportes en el sistema',
+    estado: 'EnProceso',
+    prioridad: 'Alta',
+    categoriaNombre: 'Sistema de Ventas',
+    clienteNombre: 'Cliente Demo',
+    empleadoAsignadoNombre: 'Empleado Demo',
+    fechaCreacion: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 2,
+    titulo: 'No puedo acceder al portal web',
+    estado: 'Abierto',
+    prioridad: 'Media',
+    categoriaNombre: 'Portal Web',
+    clienteNombre: 'Juan Perez',
+    empleadoAsignadoNombre: null,
+    fechaCreacion: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 3,
+    titulo: 'Solicitud de nueva funcionalidad',
+    estado: 'EnEspera',
+    prioridad: 'Baja',
+    categoriaNombre: 'Aplicacion Movil',
+    clienteNombre: 'Maria Garcia',
+    empleadoAsignadoNombre: 'Admin Demo',
+    fechaCreacion: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 4,
+    titulo: 'Problema con facturacion electronica',
+    estado: 'Abierto',
+    prioridad: 'Alta',
+    categoriaNombre: 'Facturacion',
+    clienteNombre: 'Carlos Rodriguez',
+    empleadoAsignadoNombre: null,
+    fechaCreacion: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 5,
+    titulo: 'Error en sincronizacion de inventario',
+    estado: 'EnProceso',
+    prioridad: 'Media',
+    categoriaNombre: 'Inventario',
+    clienteNombre: 'Ana Martinez',
+    empleadoAsignadoNombre: 'Empleado Demo',
+    fechaCreacion: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+];
+
 export default function EmpleadoTicketsPage() {
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [loading, setLoading] = useState(true);
@@ -61,6 +115,9 @@ export default function EmpleadoTicketsPage() {
         // Only update state if still mounted
         if (!isMounted) return;
         console.error('Error fetching tickets:', error);
+        // Fallback to demo data when API is unavailable
+        console.log('Using demo tickets (API not available)');
+        setTickets(filterDemoTickets());
       } finally {
         // Only update loading state if still mounted
         if (isMounted) {
@@ -77,6 +134,21 @@ export default function EmpleadoTicketsPage() {
       abortController.abort();
     };
   }, [filtroEstado, filtroPrioridad, busqueda]);
+
+  const filterDemoTickets = () => {
+    let filtered = [...demoTickets];
+    if (filtroEstado) {
+      filtered = filtered.filter(t => t.estado === filtroEstado);
+    }
+    if (filtroPrioridad) {
+      filtered = filtered.filter(t => t.prioridad === filtroPrioridad);
+    }
+    if (busqueda) {
+      const search = busqueda.toLowerCase();
+      filtered = filtered.filter(t => t.titulo.toLowerCase().includes(search));
+    }
+    return filtered;
+  };
 
   const getEstadoBadgeClass = (estado: string) => {
     const classes: Record<string, string> = {

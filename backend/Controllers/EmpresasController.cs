@@ -55,6 +55,22 @@ public class EmpresasController : ControllerBase
     }
 
     /// <summary>
+    /// Get active empresas (public endpoint for registration)
+    /// </summary>
+    [HttpGet("activas")]
+    [AllowAnonymous]
+    public async Task<ActionResult<List<object>>> GetEmpresasActivas()
+    {
+        var empresas = await _context.Empresas
+            .Where(e => e.Activa)
+            .OrderBy(e => e.Nombre)
+            .Select(e => new { e.Id, e.Nombre })
+            .ToListAsync();
+
+        return Ok(empresas);
+    }
+
+    /// <summary>
     /// Get a specific empresa by ID
     /// </summary>
     [HttpGet("{id}")]
