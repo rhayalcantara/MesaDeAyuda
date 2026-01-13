@@ -30,7 +30,7 @@ export default function EmpleadoSolicitudesPage() {
       const params = new URLSearchParams();
       if (filtroEstado) params.append('estado', filtroEstado);
 
-      const response = await api.get(`/solicitudes-registro?${params}`);
+      const response = await api.get(`/solicitudes?${params}`);
       setSolicitudes(response.data);
     } catch (error) {
       console.error('Error fetching solicitudes:', error);
@@ -41,7 +41,7 @@ export default function EmpleadoSolicitudesPage() {
 
   const handleAprobar = async (id: number) => {
     try {
-      await api.put(`/solicitudes-registro/${id}/aprobar`);
+      await api.put(`/solicitudes/${id}/aprobar`);
       fetchSolicitudes();
       alert('Solicitud aprobada. Se ha enviado un correo con las credenciales temporales.');
     } catch (error) {
@@ -53,7 +53,7 @@ export default function EmpleadoSolicitudesPage() {
     if (!confirm('Esta seguro de rechazar esta solicitud?')) return;
 
     try {
-      await api.put(`/solicitudes-registro/${id}/rechazar`);
+      await api.put(`/solicitudes/${id}/rechazar`);
       fetchSolicitudes();
     } catch (error) {
       console.error('Error rechazando solicitud:', error);
