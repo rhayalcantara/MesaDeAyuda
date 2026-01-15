@@ -102,6 +102,7 @@ migrations.lock.json
 # =============================================================================
 appsettings.Development.json
 appsettings.Local.json
+appsettings.Production.json
 wwwroot/uploads/
 
 # =============================================================================
@@ -125,3 +126,9 @@ uploads/
 
 # Claude settings (local)
 .claude_settings.json
+
+# =============================================================================
+# Archivos con informacion sensible
+# =============================================================================
+PRODUCCION.md
+*.zip

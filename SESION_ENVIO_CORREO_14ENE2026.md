@@ -86,9 +86,9 @@ Se actualizo `backend/appsettings.Production.json` con las credenciales SMTP cor
 "Email": {
   "SmtpServer": "smtp.gmail.com",
   "Port": 587,
-  "Username": "rhayalcantara@gmail.com",
-  "Password": "wcri duxl wyye oshj",
-  "FromEmail": "rhayalcantara@gmail.com",
+  "Username": "YOUR_EMAIL@gmail.com",
+  "Password": "YOUR_APP_PASSWORD",
+  "FromEmail": "YOUR_EMAIL@gmail.com",
   "FromName": "MDAyuda"
 }
 ```
@@ -137,9 +137,9 @@ mcp__ftp__ftp_write({
 "Email": {
   "SmtpServer": "smtp.gmail.com",
   "Port": 587,
-  "Username": "rhayalcantara@gmail.com",
-  "Password": "wcri duxl wyye oshj",
-  "FromEmail": "rhayalcantara@gmail.com",
+  "Username": "YOUR_EMAIL@gmail.com",
+  "Password": "YOUR_APP_PASSWORD",
+  "FromEmail": "YOUR_EMAIL@gmail.com",
   "FromName": "MDAyuda"
 }
 ```
@@ -202,22 +202,19 @@ Las credenciales SMTP son una **App Password** de Gmail, no la contrasena princi
 
 ## Credenciales de Referencia
 
+**Nota:** Las credenciales reales se mantienen en un archivo local seguro (PRODUCCION.md) y NO deben subirse al repositorio.
+
 **FTP:**
-- Host: win8106.site4now.net
-- Usuario: rhayalcantara-002
-- Password: BcdefG7h*
-- Ruta: /MDAyuda/
+- Host: (ver archivo local)
+- Usuario: (ver archivo local)
+- Password: (ver archivo local)
 
 **SMTP Gmail:**
 - Servidor: smtp.gmail.com
 - Puerto: 587
-- Usuario: rhayalcantara@gmail.com
-- App Password: wcri duxl wyye oshj
+- Usuario: (ver archivo local)
+- App Password: (ver archivo local)
 
 **Admin MDAyuda:**
-- Email: admin@mdayuda.com
-- Password: BcdefG7h*
-
-**Empleado de prueba:**
-- Nombre: Rhay Alcantara
-- Email: rhayalcantara@gmail.com
+- Email: (ver archivo local)
+- Password: (ver archivo local)
