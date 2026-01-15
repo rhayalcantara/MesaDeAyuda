@@ -26,6 +26,9 @@ public class EmailService : IEmailService
             var fromEmail = emailSettings["FromEmail"];
             var fromName = emailSettings["FromName"];
 
+            _logger.LogError("DEBUG Email config - SmtpServer: '{SmtpServer}', Port: {Port}, Username: '{Username}', FromEmail: '{FromEmail}'",
+                smtpServer ?? "NULL", port, username ?? "NULL", fromEmail ?? "NULL");
+
             using var client = new SmtpClient(smtpServer, port)
             {
                 EnableSsl = true,
@@ -133,6 +136,29 @@ public class EmailService : IEmailService
                 <p><a href='http://localhost:3000/tickets/{ticketId}'>Ver ticket</a></p>
                 <hr>
                 <p style='color: #666; font-size: 12px;'>Este es un mensaje automatico de MDAyuda.</p>
+            </body>
+            </html>";
+
+        await SendEmailAsync(to, subject, body);
+    }
+
+    public async Task SendPasswordResetEmailAsync(string to, string nombre, string temporaryPassword)
+    {
+        var subject = "MDAyuda - Contraseña Restablecida";
+        var body = $@"
+            <html>
+            <body style='font-family: Arial, sans-serif;'>
+                <h2>Hola {nombre},</h2>
+                <p>Tu contraseña ha sido restablecida por un administrador.</p>
+                <p>Tus nuevas credenciales de acceso son:</p>
+                <ul>
+                    <li><strong>Correo:</strong> {to}</li>
+                    <li><strong>Contraseña temporal:</strong> {temporaryPassword}</li>
+                </ul>
+                <p><strong>Importante:</strong> Deberás cambiar tu contraseña en el primer inicio de sesión.</p>
+                <p>Accede al sistema: <a href='http://rhayalcantara-002-site1.ntempurl.com/login'>Iniciar sesión</a></p>
+                <hr>
+                <p style='color: #666; font-size: 12px;'>Este es un mensaje automático de MDAyuda. Por favor no responda a este correo.</p>
             </body>
             </html>";
 
